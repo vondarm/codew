@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task-spec id="1" name="Инициализация проекта">
+  <overview>
+    <objective>Создать стартовый каркас приложения на Next.js 14/15 с включенными TypeScript, ESLint, Prettier и Husky, подключенным Material UI и настроенным Prisma ORM с встроенной дев-базой, используя в качестве пакетного менеджера Yarn.</objective>
+    <in-scope>
+      <item>Генерация проекта Next.js с App Router и TypeScript с помощью Yarn.</item>
+      <item>Настройка ESLint, Prettier и единых скриптов форматирования.</item>
+      <item>Установка Husky и lint-staged для pre-commit проверки и автоформатирования.</item>
+      <item>Интеграция Material UI и базовой темы приложения.</item>
+      <item>Подключение Prisma ORM со встроенной SQLite dev-базой (DATABASE_URL = file:./dev.db).</item>
+      <item>Подготовка .env.example и документации по локальному запуску.</item>
+    </in-scope>
+    <out-of-scope>
+      <item>CI/CD пайплайны и деплой на Vercel.</item>
+      <item>Интеграция с внешними СУБД (PostgreSQL и др.).</item>
+      <item>Реализация доменной логики сервисов (Auth, Workspace и т.п.).</item>
+    </out-of-scope>
+  </overview>
+  <deliverables>
+    <item>Репозиторий с инициализированным Next.js приложением, работающим через Yarn.</item>
+    <item>Конфигурации ESLint, Prettier, Husky и lint-staged с рабочими скриптами Yarn.</item>
+    <item>Material UI, подключенный в `app/layout.tsx`, и пример компонента, использующего тему.</item>
+    <item>Файл `schema.prisma` с datasource SQLite и миграцией/`db push`, формирующей dev-базу.</item>
+    <item>Файл `.env.example` с переменными для локальной среды (`NEXT_PUBLIC_APP_URL`, `DATABASE_URL`).</item>
+    <item>README или `docs/setup.md` с инструкциями по установке зависимостей и запуску через Yarn.</item>
+    <item>Чек-лист smoke-проверок (lint, build, dev-сервер, prisma db push).</item>
+  </deliverables>
+  <implementation-plan>
+    <step index="1">Создать проект командой `yarn create next-app` (или `npx create-next-app --use-yarn`) c включенными TypeScript, ESLint, App Router и директорией `src`.</step>
+    <step index="2">Добавить Prettier и связанные пакеты (`eslint-config-prettier`, `lint-staged`), синхронизировать правила ESLint/Prettier.</step>
+    <step index="3">Установить Husky, инициализировать hooks, настроить pre-commit на `yarn lint --fix` и `yarn format` (или `lint-staged`).</step>
+    <step index="4">Интегрировать Material UI: установить `@mui/material`, `@emotion/react`, `@emotion/styled`, создать тему и обернуть приложение в `ThemeProvider`.</step>
+    <step index="5">Настроить Prisma: установить `prisma` и `@prisma/client`, сконфигурировать datasource SQLite, выполнить `npx prisma db push` для генерации `dev.db` и Prisma Client.</step>
+    <step index="6">Добавить `.env.example` с указанием `DATABASE_URL="file:./dev.db"` и рекомендациями по локальному `.env`.</step>
+    <step index="7">Описать в README/docs шаги по запуску: `yarn install`, `yarn lint`, `yarn dev`, `npx prisma studio` (опционально).</step>
+    <step index="8">Провести smoke-проверку (`yarn lint`, `yarn build`, `yarn dev`) и зафиксировать результаты в чек-листе.</step>
+  </implementation-plan>
+  <tooling>
+    <dependency>Node.js LTS и Yarn (classic или Berry по договоренности в команде).</dependency>
+    <dependency>Prisma CLI и встроенная SQLite база (dev.db).</dependency>
+    <dependency>Опционально Docker Desktop для будущей интеграции с внешними БД (не в рамках задачи).</dependency>
+  </tooling>
+  <testing>
+    <strategy>Выполнение `yarn lint` без ошибок и предупреждений.</strategy>
+    <strategy>Успешный `yarn build` и запуск `yarn dev` с корректным отображением MUI компонента.</strategy>
+    <strategy>`npx prisma db push` выполняется без ошибок, база `dev.db` создается и доступна через Prisma Studio.</strategy>
+  </testing>
+  <documentation>
+    <item>README раздел «Быстрый старт» (install, env, lint, dev).</item>
+    <item>Документ `docs/setup.md` с подробной инструкцией и чек-листом выполненных шагов.</item>
+  </documentation>
+  <risks>
+    <risk>При переходе на внешнюю СУБД потребуется обновление конфигурации Prisma и миграции — задокументировать будущие действия.</risk>
+    <risk>Несовместимость версий Node.js/Next.js/Prisma — зафиксировать версии в package.json и возможном `.nvmrc`.</risk>
+    <risk>Неправильная конфигурация Husky в Windows/WSL может блокировать коммиты — протестировать хуки на целевых платформах.</risk>
+  </risks>
+  <acceptance-criteria>
+    <criterion>`yarn build` и `yarn dev` работают без ошибок, отображается страница с примером использования MUI.</criterion>
+    <criterion>Pre-commit hook предотвращает коммиты при ошибках lint или формате.</criterion>
+    <criterion>`npx prisma db push` создает файл `dev.db`, Prisma Client генерируется, и доступ к данным возможен через Prisma Studio.</criterion>
+    <criterion>README/docs дают понятные шаги для запуска проекта новым разработчиком.</criterion>
+  </acceptance-criteria>
+</task-spec>
