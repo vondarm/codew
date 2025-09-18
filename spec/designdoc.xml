@@ -1,0 +1,209 @@
+<document>
+  <section title="Введение и цели">
+    Цель проекта — разработать минимально жизнеспособную версию (MVP) веб-сервиса для проведения онлайн-интервью по программированию с поддержкой лайвкодинга.
+    Сервис должен обеспечивать управление рабочими областями (workspaces) для разделения организаций и команд, гибкое управление участниками и правами доступа,
+    создание и совместное использование комнат для интервью с возможностью подключения анонимных кандидатов по публичной ссылке, а также редактор кода с
+    совместным редактированием в режиме реального времени. Дополнительно система должна поддерживать запуск кода (JavaScript/TypeScript/React) прямо в браузере,
+    импорт шаблонов кода, а также логирование действий участников для последующего аудита.
+  </section>
+
+  <section title="Общие требования">
+    <subsection title="Функциональные требования">
+      <item id="1">Аутентификация и авторизация через Google OAuth. Используется NextAuth.js.</item>
+      <item id="2">Многотенантность и рабочие области. Пользователь может состоять в нескольких workspace.</item>
+      <item id="3">Управление участниками и ролями (admin/editor/viewer).</item>
+      <item id="4">Комнаты для интервью с публичной ссылкой и настройками доступа.</item>
+      <item id="5">Редактор кода на основе Monaco Editor.</item>
+      <item id="6">Совместное редактирование через Yjs и y-monaco.</item>
+      <item id="7">Запуск кода в браузере (JS, TS, React) в изолированной песочнице.</item>
+      <item id="8">Настройки окружения кода.</item>
+      <item id="9">Привязанные к workspace шаблоны кода.</item>
+      <item id="10">Логирование действий участников.</item>
+    </subsection>
+
+    <subsection title="Нефункциональные требования">
+      <item>Фулл-стек Next.js (14/15) с серверными компонентами и Server Actions.</item>
+      <item>Material UI для интерфейса.</item>
+      <item>Prisma ORM для работы с PostgreSQL.</item>
+      <item>Безопасность: хранение OAuth ключей на сервере, запуск кода в песочнице.</item>
+      <item>Доступность: поддержка тёмной/светлой темы, read-only на мобильных.</item>
+    </subsection>
+  </section>
+
+  <section title="Архитектура системы">
+    <subsection title="Общий обзор">
+      Сервис строится по модульному принципу. Клиентские компоненты (Next.js) взаимодействуют с серверными компонентами и Server Actions.
+      База данных (PostgreSQL через Prisma ORM) используется для хранения сущностей: пользователей, рабочих областей, ролей, комнат, шаблонов и логов.
+      Для синхронизации редактора используется WebSocket-сервер (y-websocket) или сервис Liveblocks.
+      Запуск кода осуществляется на стороне клиента: исходный код компилируется и исполняется в песочнице браузера (iframe sandbox, Babel/Esbuild-wasm).
+    </subsection>
+
+    <subsection title="Сущности (ER-модель)">
+      <entity name="User">id, email, имя, фото, список рабочих областей</entity>
+      <entity name="Workspace">id, название, владелец, список участников, шаблонов, комнат</entity>
+      <entity name="Member">id, workspace_id, user_id, role (admin/editor/viewer), дата приглашения, статус</entity>
+      <entity name="Room">id, workspace_id, название, slug, настройки анонимусов, участники, история логов</entity>
+      <entity name="Template">id, workspace_id, название, язык, текст, дата создания</entity>
+      <entity name="LogEntry">id, room_id, user_id/null, timestamp, тип события, данные</entity>
+    </subsection>
+
+    <subsection title="Компоненты и сервисы">
+      <service name="AuthService">
+        <description>Аутентификация через Google OAuth с использованием NextAuth.js.</description>
+        <contracts>login(), logout(), getCurrentUser()</contracts>
+        <dependencies>Google OAuth, База данных</dependencies>
+      </service>
+
+      <service name="WorkspaceService">
+        <description>CRUD для рабочих областей; управление членством.</description>
+        <contracts>createWorkspace(), getWorkspacesByUser(), updateWorkspace(), deleteWorkspace(), inviteMember(), changeRole(), removeMember()</contracts>
+        <dependencies>AuthService, Prisma ORM</dependencies>
+      </service>
+
+      <service name="RoomService">
+        <description>Создание/удаление комнат, генерация публичного slug, настройка прав анонимов.</description>
+        <contracts>createRoom(), joinRoom(), updateRoomSettings(), closeRoom()</contracts>
+        <dependencies>WorkspaceService, MemberService</dependencies>
+      </service>
+
+      <service name="TemplateService">
+        <description>CRUD шаблонов кода, импорт в комнаты.</description>
+        <contracts>createTemplate(), updateTemplate(), deleteTemplate(), importTemplateToRoom()</contracts>
+        <dependencies>WorkspaceService, RoomService</dependencies>
+      </service>
+
+      <service name="CollaborationService">
+        <description>Совместное редактирование через Yjs, y-monaco, y-websocket.</description>
+        <contracts>connectToRoom(roomSlug, userToken)</contracts>
+        <dependencies>RoomService</dependencies>
+      </service>
+
+      <service name="ExecutionService">
+        <description>Запуск кода в браузере (iframe sandbox, Babel/Esbuild-wasm).</description>
+        <contracts>runCodeInBrowser(language, code) → output/error</contracts>
+        <dependencies>RoomService</dependencies>
+      </service>
+
+      <service name="LoggingService">
+        <description>Сбор и хранение логов.</description>
+        <contracts>logEvent(), getLogs()</contracts>
+        <dependencies>RoomService, CollaborationService, ExecutionService</dependencies>
+      </service>
+
+      <service name="UI">
+        <description>Клиентский интерфейс на Next.js + Material UI.</description>
+        <dependencies>Все сервисы</dependencies>
+      </service>
+
+      <service name="PermissionsMiddleware">
+        <description>Авторизация и контроль доступа.</description>
+        <contracts>hasRole(), checkRoomAccess(), withAuth()</contracts>
+        <dependencies>AuthService, WorkspaceService</dependencies>
+      </service>
+    </subsection>
+  </section>
+
+  <section title="Декомпозиция задач">
+    <task id="1" name="Инициализация проекта">
+      <description>Создать репозиторий, настроить Next.js 14/15, TypeScript, ESLint, Prettier, Husky. Подключить Material UI. Настроить Prisma ORM, подключить PostgreSQL, выполнить первую миграцию. Подготовить базовый CI/CD pipeline (GitHub Actions, Vercel).</description>
+      <contracts>Нет</contracts>
+      <dependencies>Нет</dependencies>
+      <blockers>Блокирует все последующие задачи.</blockers>
+    </task>
+
+    <task id="2" name="Аутентификация (AuthService)">
+      <description>Настроить Google OAuth через NextAuth.js. Определить модель User в Prisma. Реализовать вход, выход, получение текущей сессии. Хранить в БД email, имя, фото пользователя.</description>
+      <contracts>login(), logout(), getCurrentUser()</contracts>
+      <dependencies ref="task-1">Инициализация проекта</dependencies>
+      <blockers>Блокирует управление workspace и участниками.</blockers>
+    </task>
+
+    <task id="3" name="Проектирование базы данных и схема">
+      <description>Создать модели User, Workspace, Member, Room, Template, LogEntry в Prisma. Настроить связи Many-to-Many. Сгенерировать миграции через Prisma Migrate. Настроить тестовую БД.</description>
+      <contracts>Prisma schema.prisma, миграции</contracts>
+      <dependencies ref="task-1">Инициализация проекта</dependencies>
+      <blockers>Блокирует все сервисы, работающие с данными.</blockers>
+    </task>
+
+    <task id="4" name="Управление рабочими областями (WorkspaceService)">
+      <description>CRUD для рабочих областей, связь с пользователями. Управление списком workspace у пользователя.</description>
+      <contracts>createWorkspace(), getWorkspace(), updateWorkspace(), deleteWorkspace()</contracts>
+      <dependencies ref="task-2 task-3">Аутентификация, БД</dependencies>
+      <blockers>Открывает управление участниками, комнатами и шаблонами.</blockers>
+    </task>
+
+    <task id="5" name="Управление участниками и ролями (MemberService)">
+      <description>Приглашение пользователей по e-mail. Генерация токена приглашения. Сохранение в БД. Изменение роли, удаление участника. Передача прав при удалении администратора.</description>
+      <contracts>inviteMember(), acceptInvitation(), changeRole(), removeMember()</contracts>
+      <dependencies ref="task-2 task-3 task-4">Auth, БД, Workspace</dependencies>
+      <blockers>Открывает создание комнат.</blockers>
+    </task>
+
+    <task id="6" name="Управление комнатами (RoomService)">
+      <description>Создание комнат, привязка к workspace. Генерация slug/ссылки. Настройки: язык по умолчанию, права анонимных участников. Архивация/удаление. UI списка комнат.</description>
+      <contracts>createRoom(), getRoom(), updateRoom(), closeRoom()</contracts>
+      <dependencies ref="task-4 task-5 task-3">Workspace, Members, БД</dependencies>
+      <blockers>Открывает коллаборацию и запуск кода.</blockers>
+    </task>
+
+    <task id="7" name="Управление шаблонами (TemplateService)">
+      <description>CRUD шаблонов. Импорт шаблона в комнату. Импорт в новую комнату при создании.</description>
+      <contracts>createTemplate(), updateTemplate(), deleteTemplate(), importTemplateToRoom()</contracts>
+      <dependencies ref="task-3">БД</dependencies>
+      <blockers>Можно делать параллельно с task-6. Импорт требует готовности RoomService.</blockers>
+    </task>
+
+    <task id="8" name="Совместное редактирование (CollaborationService)">
+      <description>Настроить y-websocket сервер. Хранить y-document для каждой комнаты. Подключение через y-monaco. Awareness (курсоры, имена). Настроить права для viewer/анонимов. Модерация: блокировка редактирования.</description>
+      <contracts>connectToRoom(roomSlug, userToken)</contracts>
+      <dependencies ref="task-6">RoomService</dependencies>
+      <blockers>После реализации подключается к редактору кода.</blockers>
+    </task>
+
+    <task id="9" name="Запуск кода в браузере (ExecutionService)">
+      <description>Запуск JS/TS/React кода в iframe sandbox. Транспиляция через Babel/esbuild-wasm. Перенаправление console.log в окно вывода. Тайм-лимиты. Ограничение доступа. UI: кнопка «Запустить», окно вывода. Логирование каждого запуска.</description>
+      <contracts>runCodeInBrowser({language, code}) → {output, error, duration}</contracts>
+      <dependencies ref="task-6">RoomService</dependencies>
+      <blockers>Можно параллельно с task-8.</blockers>
+    </task>
+
+    <task id="10" name="Логирование действий (LoggingService)">
+      <description>Принимать события из CollaborationService, RoomService, TemplateService, ExecutionService. Сохранять в LogEntry. API выборки логов. UI администратора с фильтрацией.</description>
+      <contracts>logEvent(), getLogs()</contracts>
+      <dependencies ref="task-6 task-3">RoomService, БД</dependencies>
+      <blockers>Можно параллельно с task-8 и task-9.</blockers>
+    </task>
+
+    <task id="11" name="Реализация UI">
+      <description>Next.js + MUI. Страницы: login, workspaces, workspace/[id], room/[slug]. Модальные окна: создание workspace, шаблоны, приглашения, настройки комнаты. Редактор Monaco, окно вывода, чат, список участников.</description>
+      <contracts>UI компоненты взаимодействуют с Server Actions.</contracts>
+      <dependencies ref="task-1">Инициализация</dependencies>
+      <blockers>Можно параллельно с серверными задачами.</blockers>
+    </task>
+
+    <task id="12" name="Система разрешений и middleware">
+      <description>Middleware Next.js для проверки сессий и ролей. Проверка настроек anonymousPermissions. Проверка прав в Server Actions.</description>
+      <contracts>hasRole(), checkRoomAccess(), withAuth()</contracts>
+      <dependencies ref="task-2 task-4">Auth, Workspace</dependencies>
+      <blockers>Должна быть до интеграции серверных методов.</blockers>
+    </task>
+
+    <task id="13" name="Деплой и DevOps">
+      <description>Настроить окружения (dev/staging/prod). Vercel для продакшна. Переменные окружения (OAuth ключи, DB URL). CI/CD (GitHub Actions). Мониторинг WebSocket серверов.</description>
+      <contracts>Docker, vercel.json, env файлы, init script БД</contracts>
+      <dependencies ref="task-1">Инициализация</dependencies>
+      <blockers>Выполняется после основных задач.</blockers>
+    </task>
+  </section>
+
+  <section title="Диаграмма зависимостей">
+    <diagram file="file-Vuzmkva7CGb3AwyXCbgEDW"/>
+  </section>
+
+  <section title="Заключение">
+    Документ описывает структуру проекта: сущности, модули, интерфейсы, последовательность разработки.
+    Next.js + Server Actions обеспечивают безопасность и оптимизацию, Yjs — масштабируемую совместную работу, Material UI — UI,
+    Prisma ORM — работу с PostgreSQL, запуск кода в браузере — снижение нагрузки на сервер. 
+    Диаграмма зависимостей помогает планировать разработку.
+  </section>
+</document>
