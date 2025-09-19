@@ -30,7 +30,11 @@ export const authOptions: NextAuthOptions = {
   secret: getRequiredEnv("NEXTAUTH_SECRET"),
   callbacks: {
     session: async ({ session, user }) => {
-      if (session.user) {
+      if (!session.user) {
+        return session;
+      }
+
+      if (user) {
         session.user.id = user.id;
         session.user.name = user.name;
         session.user.email = user.email;
