@@ -119,38 +119,38 @@
       <blockers>Блокирует управление workspace и участниками.</blockers>
     </task>
 
-    <task id="3" name="Проектирование базы данных и схема">
-      <description>Создать модели User, Workspace, Member, Room, Template, LogEntry в Prisma. Настроить связи Many-to-Many. Сгенерировать миграции через Prisma Migrate. Настроить тестовую БД.</description>
-      <contracts>Prisma schema.prisma, миграции</contracts>
+    <task id="3" name="Инфраструктура миграций Prisma">
+      <description>Настроить процессы prisma migrate dev/deploy, договориться о правилах именования моделей и миграций. Подготовить базовую (пустую) миграцию и документацию, чтобы остальные задачи могли добавлять свои сущности по мере необходимости.</description>
+      <contracts>Документация по процессу миграций Prisma, базовая миграция</contracts>
       <dependencies ref="task-1">Инициализация проекта</dependencies>
-      <blockers>Блокирует все сервисы, работающие с данными.</blockers>
+      <blockers>Обеспечивает возможность расширять схему БД в последующих задачах.</blockers>
     </task>
 
     <task id="4" name="Управление рабочими областями (WorkspaceService)">
-      <description>CRUD для рабочих областей, связь с пользователями. Управление списком workspace у пользователя.</description>
+      <description>CRUD для рабочих областей, связь с пользователями. Управление списком workspace у пользователя. Добавить в Prisma модель Workspace (id, name, ownerId, slug, timestamps) и выполнить миграцию.</description>
       <contracts>createWorkspace(), getWorkspace(), updateWorkspace(), deleteWorkspace()</contracts>
-      <dependencies ref="task-2 task-3">Аутентификация, БД</dependencies>
+      <dependencies ref="task-2 task-3">Аутентификация, инфраструктура миграций</dependencies>
       <blockers>Открывает управление участниками, комнатами и шаблонами.</blockers>
     </task>
 
     <task id="5" name="Управление участниками и ролями (MemberService)">
-      <description>Приглашение пользователей по e-mail. Генерация токена приглашения. Сохранение в БД. Изменение роли, удаление участника. Передача прав при удалении администратора.</description>
+      <description>Приглашение пользователей по e-mail. Генерация токена приглашения. Сохранение в БД. Изменение роли, удаление участника. Передача прав при удалении администратора. Добавить модели Member и InvitationToken (при необходимости) в Prisma, настроить связи User ↔ Workspace и миграцию.</description>
       <contracts>inviteMember(), acceptInvitation(), changeRole(), removeMember()</contracts>
-      <dependencies ref="task-2 task-3 task-4">Auth, БД, Workspace</dependencies>
+      <dependencies ref="task-2 task-3 task-4">Auth, инфраструктура миграций, Workspace</dependencies>
       <blockers>Открывает создание комнат.</blockers>
     </task>
 
     <task id="6" name="Управление комнатами (RoomService)">
-      <description>Создание комнат, привязка к workspace. Генерация slug/ссылки. Настройки: язык по умолчанию, права анонимных участников. Архивация/удаление. UI списка комнат.</description>
+      <description>Создание комнат, привязка к workspace. Генерация slug/ссылки. Настройки: язык по умолчанию, права анонимных участников. Архивация/удаление. UI списка комнат. Добавить модель Room в Prisma (workspaceId, slug, настройки) и миграцию.</description>
       <contracts>createRoom(), getRoom(), updateRoom(), closeRoom()</contracts>
-      <dependencies ref="task-4 task-5 task-3">Workspace, Members, БД</dependencies>
+      <dependencies ref="task-4 task-5 task-3">Workspace, Members, инфраструктура миграций</dependencies>
       <blockers>Открывает коллаборацию и запуск кода.</blockers>
     </task>
 
     <task id="7" name="Управление шаблонами (TemplateService)">
-      <description>CRUD шаблонов. Импорт шаблона в комнату. Импорт в новую комнату при создании.</description>
+      <description>CRUD шаблонов. Импорт шаблона в комнату. Импорт в новую комнату при создании. Добавить модель Template в Prisma с привязкой к workspace и выполнить миграцию.</description>
       <contracts>createTemplate(), updateTemplate(), deleteTemplate(), importTemplateToRoom()</contracts>
-      <dependencies ref="task-3">БД</dependencies>
+      <dependencies ref="task-3 task-4">Инфраструктура миграций, Workspace</dependencies>
       <blockers>Можно делать параллельно с task-6. Импорт требует готовности RoomService.</blockers>
     </task>
 
@@ -169,9 +169,9 @@
     </task>
 
     <task id="10" name="Логирование действий (LoggingService)">
-      <description>Принимать события из CollaborationService, RoomService, TemplateService, ExecutionService. Сохранять в LogEntry. API выборки логов. UI администратора с фильтрацией.</description>
+      <description>Принимать события из CollaborationService, RoomService, TemplateService, ExecutionService. Сохранять в LogEntry. API выборки логов. UI администратора с фильтрацией. Добавить модель LogEntry и связанные enum/тип данных в Prisma, выполнить миграцию.</description>
       <contracts>logEvent(), getLogs()</contracts>
-      <dependencies ref="task-6 task-3">RoomService, БД</dependencies>
+      <dependencies ref="task-6 task-3">RoomService, инфраструктура миграций</dependencies>
       <blockers>Можно параллельно с task-8 и task-9.</blockers>
     </task>
 
