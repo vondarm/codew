@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task-spec id="3" name="Управление рабочими областями (WorkspaceService)">
+  <overview>
+    <objective>Реализовать WorkspaceService с CRUD-операциями, интеграцией с Prisma и NextAuth, а также пользовательский интерфейс страницы /workspaces с управлением рабочими областями через Server Actions.</objective>
+    <in-scope>
+      <item>Расширение Prisma-схемы моделью Workspace и связями с User.</item>
+      <item>Миграция БД и обновление Prisma Client для поддержки рабочих областей.</item>
+      <item>Создание серверных контрактов WorkspaceService: createWorkspace, getWorkspace(s), updateWorkspace, deleteWorkspace.</item>
+      <item>Реализация утилит выборки рабочих областей пользователя для SSR/Server Actions.</item>
+      <item>Разработка страницы /workspaces на Material UI (список, модальные окна создания/редактирования, удаление).</item>
+      <item>Интеграция с NextAuth для ограничения доступа к страницам рабочей области.</item>
+      <item>Генерация уникального slug workspace и его валидация.</item>
+      <item>Обновление документации и переменных окружения при необходимости.</item>
+    </in-scope>
+    <out-of-scope>
+      <item>Управление участниками и ролями (MemberService).</item>
+      <item>Страницы и компоненты отдельных workspace (например, dashboard, списки комнат).</item>
+      <item>Публичные ссылки и гостевые доступы.</item>
+      <item>CI/CD и деплой.</item>
+    </out-of-scope>
+  </overview>
+  <deliverables>
+    <item>Обновленный `schema.prisma` с моделью `Workspace` и связью с `User` (owner и участники, если требуется).</item>
+    <item>Миграция Prisma, создающая таблицу `Workspace` и необходимые индексы/уникальные поля (slug, ownerId).</item>
+    <item>Серверный модуль WorkspaceService с реализацией контрактов и проверками прав владельца.</item>
+    <item>Server Actions или API маршруты для операций CRUD над Workspace.</item>
+    <item>Страница `/workspaces` с отображением списка рабочих областей, формами создания/редактирования и подтверждением удаления.</item>
+    <item>Компоненты UI (карточки/таблица, модальные окна) с использованием Material UI и состояниями загрузки/ошибок.</item>
+    <item>Тестовое покрытие/интеграционные проверки Server Actions (минимально — smoke-тест ручной).</item>
+    <item>Обновленная документация (README или docs/workspaces.md) с описанием модели и сценариев использования.</item>
+  </deliverables>
+  <implementation-plan>
+    <step index="1">Проанализировать текущую Prisma схему и добавить модель `Workspace` с полями `id`, `name`, `slug`, `ownerId`, `createdAt`, `updatedAt`, связью `owner` → `User` и связью `members` (через будущую модель Member или через relation поле `users`).</step>
+    <step index="2">Обновить `User` (и другие связанные модели) для поддержки связи `workspaces` и выполнить `npx prisma migrate dev` (или `db push`) с именованной миграцией.</step>
+    <step index="3">Создать слой доступа к данным (например, `lib/prisma/workspace.ts`) с функциями CRUD, учитывающими slug и ownerId.</step>
+    <step index="4">Реализовать WorkspaceService или серверные утилиты (в `lib/services/workspace.ts`) с бизнес-правилами: проверка авторства, валидация названия и slug, предотвращение удаления единственной рабочей области, если нужно.</step>
+    <step index="5">Создать Server Actions/handlers для создания, обновления, удаления workspace, используя `getCurrentUser` для проверки аутентификации.</step>
+    <step index="6">Разработать страницу `/workspaces` (App Router) как защищенный маршрут: загрузка списка с помощью Server Component, отображение UI и подключение форм к Server Actions.</step>
+    <step index="7">Добавить клиентские компоненты на Material UI: таблица/карточки, кнопки `Create`, `Edit`, `Delete`, модальные окна, обработчики состояний и уведомления об ошибках/успехе.</step>
+    <step index="8">Провести smoke-тестирование: создание новой рабочей области, редактирование, удаление, проверка slug и отображения списка.</step>
+    <step index="9">Обновить документацию и `.env.example`, если появились новые переменные или инструкции.</step>
+  </implementation-plan>
+  <tooling>
+    <dependency>Prisma ORM для миграций и доступа к данным.</dependency>
+    <dependency>NextAuth для получения текущего пользователя и ограничения доступа к Server Actions.</dependency>
+    <dependency>Material UI для UI компонентов страницы `/workspaces`.</dependency>
+    <dependency>Zod или аналогичный пакет для валидации форм (если уже используется в проекте).</dependency>
+  </tooling>
+  <testing>
+    <strategy>Запуск `npx prisma migrate dev` (либо `db push`) для применения изменений схемы без ошибок.</strategy>
+    <strategy>Выполнение `yarn lint`/`yarn test` (если доступны) без ошибок после добавления кода.</strategy>
+    <strategy>Ручная проверка в dev-среде: вход в систему, создание/редактирование/удаление рабочей области, отображение списка.</strategy>
+    <strategy>Smoke-проверка уникальности slug и обработка ошибок (дубликаты, пустое имя, отсутствие прав).</strategy>
+  </testing>
+  <documentation>
+    <item>Раздел в README или новый файл `docs/workspaces.md` с описанием модели `Workspace`, контрактов сервиса и сценариев UI.</item>
+    <item>Обновление миграционного журнала/описание шага `prisma migrate` в документации разработчика.</item>
+  </documentation>
+  <risks>
+    <risk>Конкурентное создание workspace может приводить к конфликтам slug — необходимо обеспечить атомарность и уникальные индексы.</risk>
+    <risk>Ошибки авторизации (например, отсутствие ownerId) приведут к утечке данных между пользователями — обязательна проверка владельца во всех операциях.</risk>
+    <risk>Сложность UI и Server Actions может вызвать состояние гонки при обновлении списка — предусмотреть оптимистичное обновление или перезагрузку данных после операций.</risk>
+    <risk>Раздувание схемы до внедрения MemberService: важно заранее продумать связи `Workspace` ↔ `Member` для минимизации рефакторинга.</risk>
+  </risks>
+  <acceptance-criteria>
+    <criterion>Пользователь, прошедший аутентификацию, видит список своих рабочих областей и может создать новую.</criterion>
+    <criterion>Созданная рабочая область появляется в базе данных с уникальным slug и корректно отображается в UI.</criterion>
+    <criterion>Редактирование и удаление рабочей области доступны только владельцу, выполняются без ошибок и обновляют UI.</criterion>
+    <criterion>Документация описывает модель, миграции и использование страницы `/workspaces`.</criterion>
+  </acceptance-criteria>
+</task-spec>
