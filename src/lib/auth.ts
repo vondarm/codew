@@ -15,7 +15,9 @@ function getRequiredEnv(key: "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET" | "NEXT
   return value;
 }
 
-export const authOptions: NextAuthOptions = {
+type ExtendedAuthOptions = NextAuthOptions & { trustHost?: boolean };
+
+export const authOptions: ExtendedAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({

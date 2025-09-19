@@ -5,14 +5,14 @@
   "scripts": {
     "dev": "next dev",
     "prebuild": "node -e \"require('fs').rmSync('prisma/dev.db', { force: true });\"",
-    "build": "yarn prisma:generate && yarn prisma:db-push --skip-generate && next build",
+    "build": "yarn prisma:generate && yarn prisma:db-push --skip-generate && node ./scripts/run-next-build.mjs",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --max-warnings=0 --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prisma:generate": "prisma generate",
-    "prisma:db-push": "prisma db push",
+    "prisma:db-push": "node ./scripts/prisma-db-push.mjs",
     "prepare": "husky"
   },
   "dependencies": {
