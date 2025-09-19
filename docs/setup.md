@@ -16,6 +16,7 @@ yarn install
 
 # Подготовка переменных окружения
 cp .env.example .env
+# Обновите значения NEXTAUTH_SECRET, GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET согласно инструкциям из docs/auth.md
 
 # Генерация клиентских типов и базы данных
 yarn prisma:db-push
@@ -70,3 +71,9 @@ yarn dev
 | ⚠️     | Синхронизация схемы Prisma | `yarn prisma:db-push` |
 
 > Примечание: для запуска dev-сервера в первый раз убедитесь, что база данных создана командой `yarn prisma:db-push`.
+
+## Настройка аутентификации
+
+- Конфигурация NextAuth расположена в `src/lib/auth.ts`, а обработчик маршрута — в `src/app/api/auth/[...nextauth]/route.ts`.
+- Для работы входа через Google заполните переменные окружения в `.env` (см. `docs/auth.md`).
+- Утилиты `login` и `logout` для клиентских компонентов размещены в `src/lib/auth-client.ts`, серверный доступ к сессии обеспечивает `getCurrentUser` из `src/lib/auth.ts`.
