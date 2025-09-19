@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task-spec id="2" name="Аутентификация (AuthService)">
+  <overview>
+    <objective>Настроить NextAuth.js с провайдером Google OAuth и Prisma Adapter для хранения пользователей, реализовать операции входа/выхода и предоставление текущей сессии для серверных компонентов и Server Actions.</objective>
+    <in-scope>
+      <item>Конфигурация NextAuth.js (Route Handlers в `app/api/auth/[...nextauth]/route.ts`) с провайдером Google OAuth и Prisma Adapter.</item>
+      <item>Определение модели `User` в Prisma, миграция и генерация Prisma Client.</item>
+      <item>Настройка получения текущей сессии (`getCurrentUser`) через NextAuth и утилиту для Server Actions/React компонентов.</item>
+      <item>Реализация действий входа (`login`) и выхода (`logout`) на стороне клиента с использованием `next-auth/react` и/или Server Actions.</item>
+      <item>Подготовка переменных окружения (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`) и обновление `.env.example`.</item>
+      <item>Документация по запуску аутентификации локально, включая инструкции по настройке Google OAuth credentials.</item>
+    </in-scope>
+    <out-of-scope>
+      <item>UI/UX страницы входа (настраиваемая разметка и стиль).</item>
+      <item>Авторизация по ролям и middleware доступа (перенесено в отдельные задачи).</item>
+      <item>Подключение дополнительных провайдеров NextAuth или e-mail magic links.</item>
+    </out-of-scope>
+  </overview>
+  <deliverables>
+    <item>Файл конфигурации NextAuth с провайдером Google, Prisma Adapter и корректно настроенными callbacks.</item>
+    <item>Модель `User` в `schema.prisma` с полями `id`, `name`, `email`, `image`, временными метками и связью с аккаунтами NextAuth.</item>
+    <item>Миграция Prisma, создающая необходимые таблицы (`User`, `Account`, `Session`, `VerificationToken`).</item>
+    <item>Утилиты `login`, `logout`, `getCurrentUser` (hooks/Server Actions) с примерами использования.</item>
+    <item>Обновленные `package.json`/`yarn.lock` с зависимостями `next-auth` и `@next-auth/prisma-adapter`.</item>
+    <item>Обновленный `.env.example` и документация с инструкциями по настройке OAuth.</item>
+    <item>Smoke-тест чек-лист: успешный вход через тестовый Google аккаунт, доступ к сессии, выход.</item>
+  </deliverables>
+  <implementation-plan>
+    <step index="1">Добавить зависимости `next-auth` и `@next-auth/prisma-adapter`, при необходимости обновить типы (`@types/node`).</step>
+    <step index="2">Расширить `schema.prisma`, добавив модель `User` и сущности, требуемые NextAuth, затем выполнить `npx prisma migrate dev` (либо `db push` для dev-базы).</step>
+    <step index="3">Создать/обновить обработчик `app/api/auth/[...nextauth]/route.ts` с конфигурацией провайдера Google, Prisma Adapter, callbacks для синхронизации профиля и типизацией.</step>
+    <step index="4">Реализовать вспомогательные функции `getCurrentUser` (используя `getServerSession`) и клиентские экшены `login`, `logout` (через `signIn`/`signOut` из `next-auth/react` или Server Actions).</step>
+    <step index="5">Настроить шаринг сессии между серверными компонентов/Server Actions: создать файл `lib/auth.ts` с конфигурацией и экспортом `authOptions`/`getServerAuthSession`.</step>
+    <step index="6">Обновить `.env.example`, README/docs с инструкциями по созданию OAuth-клиента Google и запуску NextAuth локально.</step>
+    <step index="7">Провести smoke-проверку: запустить dev-сервер, убедиться в успешном входе, проверке сессии и работе выхода.</step>
+  </implementation-plan>
+  <tooling>
+    <dependency>Google Cloud Console (OAuth credentials).</dependency>
+    <dependency>NextAuth.js и Prisma Adapter.</dependency>
+    <dependency>Prisma CLI для миграций.</dependency>
+  </tooling>
+  <testing>
+    <strategy>Выполнить `yarn lint` и убедиться в отсутствии ошибок типизации/линтинга в новых файлах.</strategy>
+    <strategy>Запуск `yarn dev` и ручная проверка входа/выхода через Google OAuth (используя тестовый клиент Google).</strategy>
+    <strategy>Проверить `getCurrentUser` в Server Action/серверном компоненте (например, временный лог в консоле) на предмет получения данных пользователя после входа.</strategy>
+  </testing>
+  <documentation>
+    <item>Обновление README или `docs/auth.md` с инструкциями по настройке OAuth и переменных окружения.</item>
+    <item>Описание API утилит (`login`, `logout`, `getCurrentUser`) и примеров их использования.</item>
+  </documentation>
+  <risks>
+    <risk>Неверная конфигурация OAuth (redirect URI, секреты) приведет к ошибкам входа — необходимо четко описать настройки.</risk>
+    <risk>Несогласованность схемы Prisma с NextAuth Adapter вызовет runtime ошибки — тестировать после каждой миграции.</risk>
+    <risk>Отсутствие `NEXTAUTH_SECRET` в production приведет к небезопасной сессии — задокументировать обязательность переменной.</risk>
+  </risks>
+  <acceptance-criteria>
+    <criterion>Пользователь может войти через Google OAuth, данные (имя, email, аватар) сохраняются/обновляются в БД.</criterion>
+    <criterion>Функция `getCurrentUser` возвращает актуальную сессию в серверном коде, а `login`/`logout` работают с клиентской стороны.</criterion>
+    <criterion>Документация содержит шаги для настройки Google OAuth и локального запуска NextAuth.</criterion>
+    <criterion>Все проверки из smoke-чек-листа выполняются без ошибок.</criterion>
+  </acceptance-criteria>
+</task-spec>
