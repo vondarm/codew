@@ -1,0 +1,54 @@
+{
+  "name": "codew",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "prebuild": "node -e \"require('fs').rmSync('prisma/dev.db', { force: true });\"",
+    "build": "yarn prisma:generate && yarn prisma:db-push --skip-generate && next build",
+    "start": "next start",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --max-warnings=0 --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prisma:generate": "prisma generate",
+    "prisma:db-push": "prisma db push",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.2",
+    "@prisma/client": "^6.16.2",
+    "next": "15.5.3",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@next/eslint-plugin-next": "^15.5.3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.3",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6",
+    "prettier": "^3.6.2",
+    "prisma": "^6.16.2",
+    "typescript": "^5"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --max-warnings=0 --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,mdx,css,scss}": [
+      "prettier --write"
+    ]
+  }
+}
