@@ -1,14 +1,15 @@
 import type { Workspace } from "@prisma/client";
-import { Prisma } from "@prisma/client";
+import { MemberRole, Prisma } from "@prisma/client";
 
 import {
-  createWorkspace as createWorkspaceRecord,
   deleteWorkspace as deleteWorkspaceRecord,
   findWorkspaceById,
   findWorkspaceBySlug,
-  findWorkspacesByOwner,
+  findWorkspacesByMember,
   updateWorkspace as updateWorkspaceRecord,
+  updateWorkspaceOwner,
 } from "@/lib/prisma/workspace";
+import { prisma } from "@/lib/prisma";
 import { slugify, withSlugFallback } from "@/lib/utils/slugify";
 
 const NAME_MIN_LENGTH = 3;
@@ -103,10 +104,22 @@ function mapPrismaError(error: unknown, slug?: string): WorkspaceError {
 export type WorkspaceSummary = Pick<
   Workspace,
   "id" | "name" | "slug" | "ownerId" | "createdAt" | "updatedAt"
->;
+> & {
+  role: MemberRole;
+};
 
 export async function listWorkspaces(ownerId: string): Promise<WorkspaceSummary[]> {
-  return findWorkspacesByOwner(ownerId);
+  const workspaces = await findWorkspacesByMember(ownerId);
+
+  return workspaces.map((workspace) => ({
+    id: workspace.id,
+    name: workspace.name,
+    slug: workspace.slug,
+    ownerId: workspace.ownerId,
+    createdAt: workspace.createdAt,
+    updatedAt: workspace.updatedAt,
+    role: workspace.currentRole,
+  }));
 }
 
 async function assertWorkspaceOwnership(workspaceId: string, ownerId: string): Promise<Workspace> {
@@ -132,10 +145,25 @@ export async function createWorkspace(
   const slug = await ensureUniqueSlug(slugCandidate);
 
   try {
-    return await createWorkspaceRecord({
-      name,
-      slug,
-      owner: { connect: { id: ownerId } },
+    return await prisma.$transaction(async (tx) => {
+      const workspace = await tx.workspace.create({
+        data: {
+          name,
+          slug,
+          owner: { connect: { id: ownerId } },
+        },
+      });
+
+      await tx.member.create({
+        data: {
+          workspaceId: workspace.id,
+          userId: ownerId,
+          invitedById: ownerId,
+          role: MemberRole.ADMIN,
+        },
+      });
+
+      return workspace;
     });
   } catch (error) {
     throw mapPrismaError(error, slug);
@@ -171,4 +199,11 @@ export async function deleteWorkspace(ownerId: string, workspaceId: string): Pro
 
 export async function getWorkspace(ownerId: string, workspaceId: string): Promise<Workspace> {
   return assertWorkspaceOwnership(workspaceId, ownerId);
+}
+
+export async function transferWorkspaceOwnership(
+  workspaceId: string,
+  newOwnerId: string,
+): Promise<void> {
+  await updateWorkspaceOwner(workspaceId, newOwnerId);
 }

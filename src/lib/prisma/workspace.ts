@@ -1,4 +1,5 @@
 import type { Prisma, Workspace } from "@prisma/client";
+import type { MemberRole } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
@@ -23,6 +24,21 @@ export async function findWorkspacesByOwner(ownerId: string): Promise<Workspace[
   });
 }
 
+export type WorkspaceWithRole = Workspace & { currentRole: MemberRole };
+
+export async function findWorkspacesByMember(userId: string): Promise<WorkspaceWithRole[]> {
+  const memberships = await prisma.member.findMany({
+    where: { userId },
+    include: { workspace: true },
+    orderBy: [{ workspace: { createdAt: "asc" } }],
+  });
+
+  return memberships.map((membership) => ({
+    ...membership.workspace,
+    currentRole: membership.role,
+  }));
+}
+
 export async function updateWorkspace(
   id: string,
   data: Prisma.WorkspaceUpdateArgs["data"],
@@ -32,4 +48,11 @@ export async function updateWorkspace(
 
 export async function deleteWorkspace(id: string): Promise<Workspace> {
   return prisma.workspace.delete({ where: { id } });
+}
+
+export async function updateWorkspaceOwner(id: string, ownerId: string): Promise<Workspace> {
+  return prisma.workspace.update({
+    where: { id },
+    data: { ownerId },
+  });
 }

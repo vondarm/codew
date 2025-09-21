@@ -28,6 +28,8 @@ export default async function WorkspacesPage() {
     slug: workspace.slug,
     createdAt: workspace.createdAt.toISOString(),
     updatedAt: workspace.updatedAt.toISOString(),
+    role: workspace.role,
+    isOwner: workspace.ownerId === user.id,
   }));
 
   return (

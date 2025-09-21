@@ -12,6 +12,7 @@
     "format:check": "prettier --check .",
     "prisma:generate": "prisma generate",
     "prisma:db-push": "prisma db push",
+    "test": "vitest run",
     "prepare": "husky"
   },
   "dependencies": {
@@ -41,7 +42,8 @@
     "lint-staged": "^16.1.6",
     "prettier": "^3.6.2",
     "prisma": "^6.16.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.1"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

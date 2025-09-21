@@ -2,6 +2,7 @@
 
 import type { ChangeEvent } from "react";
 import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
+import type { MemberRole } from "@prisma/client";
 
 import {
   Avatar,
@@ -11,6 +12,7 @@ import {
   Card,
   CardContent,
   Chip,
+  type ChipProps,
   Container,
   Dialog,
   DialogActions,
@@ -34,6 +36,7 @@ import { slugify, withSlugFallback } from "@/lib/utils/slugify";
 import { logout } from "@/lib/auth-client";
 
 import { ROUTES } from "@/routes";
+import Link from "next/link";
 
 type SerializedWorkspace = {
   id: string;
@@ -41,6 +44,8 @@ type SerializedWorkspace = {
   slug: string;
   createdAt: string;
   updatedAt: string;
+  role: MemberRole;
+  isOwner: boolean;
 };
 
 type CurrentUserSummary = {
@@ -61,6 +66,32 @@ type FeedbackState = {
 } | null;
 
 const idleState: WorkspaceActionState = { status: "idle" };
+
+const ROLE_LABELS: Record<MemberRole, string> = {
+  ADMIN: "Администратор",
+  EDITOR: "Редактор",
+  VIEWER: "Наблюдатель",
+};
+
+type RoleChipColor = Exclude<ChipProps["color"], undefined>;
+
+function getRoleVisuals(workspace: SerializedWorkspace): {
+  label: string;
+  color: RoleChipColor;
+} {
+  const baseLabel = ROLE_LABELS[workspace.role];
+  const label = workspace.isOwner ? `${baseLabel} • владелец` : baseLabel;
+
+  let color: RoleChipColor = "default";
+
+  if (workspace.role === "ADMIN") {
+    color = "primary";
+  } else if (workspace.role === "EDITOR") {
+    color = "info";
+  }
+
+  return { label, color };
+}
 
 function formatDate(isoDate: string): string {
   try {
@@ -452,41 +483,62 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
                   <TableRow>
                     <TableCell>Название</TableCell>
                     <TableCell>Slug</TableCell>
+                    <TableCell>Ваша роль</TableCell>
                     <TableCell>Создано</TableCell>
                     <TableCell align="right">Действия</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {sortedWorkspaces.map((workspace) => (
-                    <TableRow key={workspace.id} hover>
-                      <TableCell>
-                        <Typography fontWeight={600}>{workspace.name}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip label={workspace.slug} size="small" variant="outlined" />
-                      </TableCell>
-                      <TableCell>{formatDate(workspace.createdAt)}</TableCell>
-                      <TableCell align="right">
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <Button
-                            size="small"
-                            variant="text"
-                            onClick={() => setEditWorkspace(workspace)}
-                          >
-                            Изменить
-                          </Button>
-                          <Button
-                            size="small"
-                            color="error"
-                            variant="text"
-                            onClick={() => setDeleteWorkspace(workspace)}
-                          >
-                            Удалить
-                          </Button>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {sortedWorkspaces.map((workspace) => {
+                    const { label, color } = getRoleVisuals(workspace);
+                    const variant = color === "default" ? "outlined" : "filled";
+
+                    return (
+                      <TableRow key={workspace.id} hover>
+                        <TableCell>
+                          <Typography fontWeight={600}>{workspace.name}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={workspace.slug} size="small" variant="outlined" />
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={label} size="small" color={color} variant={variant} />
+                        </TableCell>
+                        <TableCell>{formatDate(workspace.createdAt)}</TableCell>
+                        <TableCell align="right">
+                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            {workspace.role === "ADMIN" ? (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                component={Link}
+                                href={ROUTES.workspace(workspace.id)}
+                              >
+                                Участники
+                              </Button>
+                            ) : null}
+                            <Button
+                              size="small"
+                              variant="text"
+                              onClick={() => setEditWorkspace(workspace)}
+                              disabled={!workspace.isOwner}
+                            >
+                              Изменить
+                            </Button>
+                            <Button
+                              size="small"
+                              color="error"
+                              variant="text"
+                              onClick={() => setDeleteWorkspace(workspace)}
+                              disabled={!workspace.isOwner}
+                            >
+                              Удалить
+                            </Button>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
