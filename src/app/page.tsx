@@ -13,6 +13,8 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 
+import { ROUTES } from "@/routes";
+
 const featureHighlights = [
   {
     title: "Next.js 15",
@@ -32,7 +34,7 @@ const featureHighlights = [
 ];
 
 export default function HomePage() {
-  const loginHref = `/api/auth/signin?callbackUrl=${encodeURIComponent("/workspaces")}`;
+  const loginHref = ROUTES.signin({ callbackUrl: ROUTES.workspaces });
 
   return (
     <Container component="main" maxWidth="lg" sx={{ py: { xs: 6, md: 10 } }}>
@@ -51,7 +53,7 @@ export default function HomePage() {
             <Button component={Link} href={loginHref} variant="contained" size="large">
               Войти
             </Button>
-            <Button component={Link} href="/api/hello" variant="contained" size="large">
+            <Button component={Link} href={ROUTES.apiHello} variant="contained" size="large">
               Explore API route
             </Button>
             <Button

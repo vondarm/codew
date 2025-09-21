@@ -10,6 +10,8 @@ import {
   updateWorkspace,
 } from "@/lib/services/workspace";
 
+import { ROUTES } from "@/routes";
+
 export type WorkspaceActionState = {
   status: "idle" | "success" | "error";
   message?: string;
@@ -58,7 +60,7 @@ export async function createWorkspaceAction(
 
   try {
     await createWorkspace(user.id, { name, slug });
-    revalidatePath("/workspaces");
+    revalidatePath(ROUTES.workspaces);
 
     return {
       status: "success",
@@ -100,7 +102,7 @@ export async function updateWorkspaceAction(
 
   try {
     await updateWorkspace(user.id, workspaceId, { name, slug });
-    revalidatePath("/workspaces");
+    revalidatePath(ROUTES.workspaces);
 
     return {
       status: "success",
@@ -130,7 +132,7 @@ export async function deleteWorkspaceAction(workspaceId: string): Promise<Worksp
 
   try {
     await deleteWorkspace(user.id, workspaceId);
-    revalidatePath("/workspaces");
+    revalidatePath(ROUTES.workspaces);
 
     return {
       status: "success",
