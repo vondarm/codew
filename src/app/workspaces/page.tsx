@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { listWorkspaces } from "@/lib/services/workspace";
 
+import { ROUTES } from "@/routes";
+
 import WorkspacesClient from "./workspaces-client";
 
 export const metadata: Metadata = {
@@ -15,7 +17,7 @@ export default async function WorkspacesPage() {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect(`/api/auth/signin?callbackUrl=${encodeURIComponent("/workspaces")}`);
+    redirect(ROUTES.signin({ callbackUrl: ROUTES.workspaces }));
   }
 
   const workspaces = await listWorkspaces(user.id);

@@ -33,6 +33,8 @@ import { createWorkspaceAction, deleteWorkspaceAction, updateWorkspaceAction } f
 import { slugify, withSlugFallback } from "@/lib/utils/slugify";
 import { logout } from "@/lib/auth-client";
 
+import { ROUTES } from "@/routes";
+
 type SerializedWorkspace = {
   id: string;
   name: string;
@@ -358,7 +360,7 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
 
   const handleLogout = () => {
     startLogout(async () => {
-      await logout({ callbackUrl: "/" });
+      await logout({ callbackUrl: ROUTES.home });
     });
   };
 
