@@ -28,5 +28,15 @@ export default async function WorkspacesPage() {
     updatedAt: workspace.updatedAt.toISOString(),
   }));
 
-  return <WorkspacesClient workspaces={serialized} />;
+  return (
+    <WorkspacesClient
+      workspaces={serialized}
+      currentUser={{
+        id: user.id,
+        name: user.name ?? null,
+        email: user.email ?? null,
+        image: user.image ?? null,
+      }}
+    />
+  );
 }

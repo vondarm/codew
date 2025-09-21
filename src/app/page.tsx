@@ -13,6 +13,8 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 
+import { login } from "@/lib/auth-client";
+
 const featureHighlights = [
   {
     title: "Next.js 15",
@@ -32,6 +34,10 @@ const featureHighlights = [
 ];
 
 export default function HomePage() {
+  const handleLogin = () => {
+    void login(undefined, { callbackUrl: "/workspaces" });
+  };
+
   return (
     <Container component="main" maxWidth="lg" sx={{ py: { xs: 6, md: 10 } }}>
       <Stack spacing={8}>
@@ -46,6 +52,9 @@ export default function HomePage() {
             customization.
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2} justifyContent="center" mt={4}>
+            <Button variant="contained" size="large" onClick={handleLogin}>
+              Войти
+            </Button>
             <Button component={Link} href="/api/hello" variant="contained" size="large">
               Explore API route
             </Button>
