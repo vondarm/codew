@@ -15,7 +15,8 @@ import {
 
 import type { SerializedTemplate } from "@/lib/services/template";
 
-import { deleteTemplateAction, templateActionIdleState } from "./actions";
+import { deleteTemplateAction } from "./actions";
+import { templateActionIdleState } from "./template-action-state";
 
 type TemplateDeleteDialogProps = {
   open: boolean;

@@ -21,7 +21,8 @@ import {
 
 import type { SerializedTemplate } from "@/lib/services/template";
 
-import { createTemplateAction, templateActionIdleState, updateTemplateAction } from "./actions";
+import { createTemplateAction, updateTemplateAction } from "./actions";
+import { templateActionIdleState } from "./template-action-state";
 
 export type TemplateFormDialogMode = "create" | "edit";
 
