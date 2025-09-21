@@ -274,15 +274,13 @@ export async function createTemplate(
 
   try {
     return await createTemplateRecord({
-      data: {
-        name,
-        description,
-        hiddenDescription,
-        language,
-        content,
-        workspace: { connect: { id: access.workspace.id } },
-        createdBy: { connect: { id: userId } },
-      },
+      name,
+      description,
+      hiddenDescription,
+      language,
+      content,
+      workspace: { connect: { id: access.workspace.id } },
+      createdBy: { connect: { id: userId } },
     });
   } catch (error) {
     throw mapPrismaError(error);
