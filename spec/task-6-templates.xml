@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task-spec id="6" name="Управление шаблонами (TemplateService)">
+  <overview>
+    <objective>Реализовать управление шаблонами кода внутри рабочей области: хранение в Prisma, серверные контракты TemplateService и пользовательский интерфейс для создания, редактирования и удаления шаблонов.</objective>
+    <in-scope>
+      <item>Расширение `schema.prisma` моделью `Template` (связь с `Workspace`, автором, датами, языком, содержимым) и соответствующей миграцией.</item>
+      <item>Определение enum языка шаблона (например, `JAVASCRIPT`, `TYPESCRIPT`, `REACT`) и валидации длины названия, описания, содержимого.</item>
+      <item>Слой доступа к данным (`src/lib/prisma/template.ts`) для операций выборки/модификации шаблонов по рабочей области и идентификатору.</item>
+      <item>Сервисный модуль `TemplateService` (`src/lib/services/template.ts`) с реализацией контрактов `createTemplate`, `updateTemplate`, `deleteTemplate`, а также `listTemplates`/`getTemplate` для UI.</item>
+      <item>Проверки доступа на уровне сервиса (использование `getCurrentUser`, проверка владения рабочей областью до появления MemberService; подготовка TODO-хуков под роли).</item>
+      <item>Server Actions (`src/app/workspaces/[workspaceId]/templates/actions.ts`) для CRUD с переиспользованием TemplateService и `revalidatePath`.</item>
+      <item>Страница библиотеки шаблонов (`app/workspaces/[workspaceId]/templates/page.tsx`) + клиентские компоненты (список, фильтры по языку, модальные окна создания/редактирования, предпросмотр кода, подтверждение удаления).</item>
+      <item>Обновление навигации рабочей области (ссылка на библиотеку шаблонов) и документации разработчика.</item>
+    </in-scope>
+    <out-of-scope>
+      <item>Совместное редактирование шаблонов несколькими пользователями или версиями — появится позже вместе с CollaborationService.</item>
+      <item>Глобальный каталог/шаринг шаблонов между рабочими областями.</item>
+      <item>Расширенная категоризация, теги, полнотекстовый поиск по шаблонам.</item>
+      <item>Импорт шаблонов в комнаты — реализуется в отдельной задаче управления комнатами.</item>
+      <item>Логирование действий — выделено в отдельную задачу LoggingService.</item>
+    </out-of-scope>
+  </overview>
+  <deliverables>
+    <item>Обновлённый `schema.prisma` с моделью `Template`, enum языка и внешними ключами на `Workspace`/`User`.</item>
+    <item>Миграция Prisma, создающая таблицу `Template`, индексы по `workspaceId` и `name`, а также обновлённый Prisma Client.</item>
+    <item>Файл `src/lib/prisma/template.ts` с функциями `createTemplate`, `updateTemplate`, `deleteTemplate`, `findTemplatesByWorkspace`, `findTemplateById`.</item>
+    <item>Файл `src/lib/services/template.ts` с бизнес-валидациями, ошибками (`TemplateError`), сериализацией данных и реализацией контрактов.</item>
+    <item>Server Actions в `app/workspaces/[workspaceId]/templates/actions.ts`, возвращающие унифицированные состояния (успех/ошибка/валидация) и делающие `revalidatePath`.</item>
+    <item>Новая страница `app/workspaces/[workspaceId]/templates/page.tsx` и клиентские компоненты (например, `templates-client.tsx`, `template-form-dialog.tsx`) на Material UI.</item>
+    <item>Тестовые сценарии (юнит-тесты TemplateService на валидации и правах + smoke-план по UI) и чек-лист ручной проверки.</item>
+    <item>Обновление документации (`docs/templates.md` или раздел README) и `.env.example` при появлении новых переменных.</item>
+  </deliverables>
+  <implementation-plan>
+    <step index="1">Изучить текущие маршруты рабочей области и определить расположение новой страницы (добавить layout при необходимости, подготовить ссылку из списка рабочих областей).</step>
+    <step index="2">Расширить `schema.prisma`: добавить модель `Template` (поля `id`, `workspaceId`, `createdById`, `name`, `description`, `language`, `content`, `createdAt`, `updatedAt`), enum `TemplateLanguage`, связи и индексы; выполнить миграцию и `prisma generate`.</step>
+    <step index="3">Создать `src/lib/prisma/template.ts` с функциями CRUD и выборки, обеспечив фильтрацию по `workspaceId` и сортировку (например, по `updatedAt`).</step>
+    <step index="4">Реализовать `TemplateService`: валидация входных данных (длины, обязательность содержимого), проверка владения workspace (через WorkspaceService/прямой запрос), маппинг ошибок Prisma в `TemplateError`.</step>
+    <step index="5">Определить вспомогательные сериализаторы (`serializeTemplateForClient`) и типы DTO для передачи данных в React-компоненты.</step>
+    <step index="6">Добавить Server Actions в `app/workspaces/[workspaceId]/templates/actions.ts` для создания, обновления и удаления; реализовать унифицированное состояние ответа и вызовы `revalidatePath`.</step>
+    <step index="7">Разработать страницу библиотеки: серверный компонент получает список шаблонов, передаёт сериализованный массив клиентскому компоненту; реализовать UI со списком/таблицей, фильтрами по языку, модальными окнами создания/редактирования и подтверждением удаления.</step>
+    <step index="8">Добавить юнит-тесты/интеграционные проверки (например, в `tests/template-service.test.ts`) и описать ручной smoke-тест (создание, редактирование, удаление); обновить документацию.</step>
+  </implementation-plan>
+  <tooling>
+    <dependency>Prisma ORM и CLI (миграции, генерация клиента).</dependency>
+    <dependency>NextAuth utilities (`getCurrentUser`) для проверки прав доступа.</dependency>
+    <dependency>Material UI для модальных окон, форм и таблиц.</dependency>
+    <dependency>Средство тестирования (Vitest/Jest) — определить и подключить при необходимости.</dependency>
+  </tooling>
+  <testing>
+    <strategy>Запуск `yarn lint` и `yarn test` (при появлении) должен проходить без ошибок.</strategy>
+    <strategy>Прогон `npx prisma migrate dev` / `yarn prisma:db-push` на чистой базе для проверки миграции.</strategy>
+    <strategy>Ручной smoke-тест через `yarn dev`: создание шаблона, редактирование, удаление, проверка сообщений об ошибках.</strategy>
+    <strategy>Тестирование граничных случаев в TemplateService (пустые названия, слишком длинный код, попытка доступа к чужому workspace).</strategy>
+  </testing>
+  <documentation>
+    <item>Новый раздел `docs/templates.md` с описанием модели и сценариев использования.</item>
+    <item>Обновление README (или существующих docs) с инструкцией по запуску миграций и навигацией к библиотеке шаблонов.</item>
+    <item>Обновление `.env.example`, если появятся новые переменные (например, ограничения для размеров шаблонов).</item>
+  </documentation>
+  <risks>
+    <risk>Большой размер шаблонов может привести к увеличению времени ответа и размеру БД — стоит установить валидацию длины и, при необходимости, ограничение на уровне UI/сервиса.</risk>
+    <risk>Ошибки в проверках доступа приведут к утечке данных между рабочими областями — обязательны тесты и двойная проверка `workspaceId`.</risk>
+    <risk>Несогласованность enum языка между TemplateService и исполнением кода вызовет ошибки при запуске — требуется централизованный список языков.</risk>
+  </risks>
+  <acceptance-criteria>
+    <criterion>Пользователь, обладающий правами на рабочую область, видит список шаблонов и может создавать, редактировать и удалять записи; операции проходят без ошибок и обновляют UI.</criterion>
+    <criterion>Сервисы и Server Actions возвращают осмысленные ошибки валидации (например, при пустом названии) и предотвращают доступ к чужим рабочим областям.</criterion>
+    <criterion>Список и CRUD-операции по шаблонам работают корректно, операции обновляют UI без ошибок.</criterion>
+    <criterion>Документация и миграции обновлены, `yarn lint`/миграции выполняются без ошибок, чек-лист smoke-тестов закрыт.</criterion>
+  </acceptance-criteria>
+</task-spec>
