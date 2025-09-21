@@ -464,14 +464,16 @@ export function WorkspacesClient({ workspaces }: WorkspacesClientProps) {
         workspace={deleteWorkspace}
       />
 
-      <Snackbar
-        open={Boolean(feedback)}
-        autoHideDuration={5000}
-        onClose={() => setFeedback(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        {feedback ? <Alert severity={feedback.severity}>{feedback.message}</Alert> : null}
-      </Snackbar>
+      {feedback ? (
+        <Snackbar
+          open
+          autoHideDuration={5000}
+          onClose={() => setFeedback(null)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert severity={feedback.severity}>{feedback.message}</Alert>
+        </Snackbar>
+      ) : null}
     </Container>
   );
 }
