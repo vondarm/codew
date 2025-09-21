@@ -21,7 +21,7 @@ const featureHighlights = [
   },
   {
     title: "Prisma ORM",
-    description: "Type-safe database client configured for SQLite dev environments.",
+    description: "Type-safe database client configured for PostgreSQL development.",
     color: "secondary" as const,
   },
   {

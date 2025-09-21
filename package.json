@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node -e \"require('fs').rmSync('prisma/dev.db', { force: true });\"",
     "build": "yarn prisma:generate && yarn prisma:db-push --skip-generate && next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
