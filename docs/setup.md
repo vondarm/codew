@@ -74,5 +74,5 @@ yarn dev
 ## Настройка аутентификации
 
 - Конфигурация NextAuth расположена в `src/lib/auth.ts`, а обработчик маршрута — в `src/app/api/auth/[...nextauth]/route.ts`.
-- Для работы входа через Google заполните переменные окружения в `.env` (см. `docs/auth.md`).
+- Для работы входа через OAuth-провайдеры (Google, GitHub, Яндекс) заполните переменные окружения в `.env` (см. `docs/auth.md`).
 - Утилиты `login` и `logout` для клиентских компонентов размещены в `src/lib/auth-client.ts`, серверный доступ к сессии обеспечивает `getCurrentUser` из `src/lib/auth.ts`.

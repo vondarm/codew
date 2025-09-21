@@ -1,15 +1,28 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { NextAuthOptions, Session } from "next-auth";
 import { getServerSession } from "next-auth";
+import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
+import YandexProvider from "next-auth/providers/yandex";
 
 import { prisma } from "@/lib/prisma";
 
-function getRequiredEnv(key: "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET" | "NEXTAUTH_SECRET") {
+type RequiredEnvKey =
+  | "GOOGLE_CLIENT_ID"
+  | "GOOGLE_CLIENT_SECRET"
+  | "GITHUB_CLIENT_ID"
+  | "GITHUB_CLIENT_SECRET"
+  | "YANDEX_CLIENT_ID"
+  | "YANDEX_CLIENT_SECRET"
+  | "NEXTAUTH_SECRET";
+
+function getRequiredEnv(key: RequiredEnvKey) {
   const value = process.env[key];
 
   if (!value || value.length === 0) {
-    throw new Error(`Missing required environment variable: ${key}. Check docs/auth.md for setup instructions.`);
+    throw new Error(
+      `Missing required environment variable: ${key}. Check docs/auth.md for setup instructions.`,
+    );
   }
 
   return value;
@@ -22,6 +35,14 @@ export const authOptions: NextAuthOptions = {
       clientId: getRequiredEnv("GOOGLE_CLIENT_ID"),
       clientSecret: getRequiredEnv("GOOGLE_CLIENT_SECRET"),
       allowDangerousEmailAccountLinking: false,
+    }),
+    GitHubProvider({
+      clientId: getRequiredEnv("GITHUB_CLIENT_ID"),
+      clientSecret: getRequiredEnv("GITHUB_CLIENT_SECRET"),
+    }),
+    YandexProvider({
+      clientId: getRequiredEnv("YANDEX_CLIENT_ID"),
+      clientSecret: getRequiredEnv("YANDEX_CLIENT_SECRET"),
     }),
   ],
   session: {
