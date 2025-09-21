@@ -4,6 +4,7 @@ import type { ChangeEvent } from "react";
 import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 
 import {
+  Avatar,
   Alert,
   Box,
   Button,
@@ -30,6 +31,7 @@ import {
 import type { WorkspaceActionState } from "./actions";
 import { createWorkspaceAction, deleteWorkspaceAction, updateWorkspaceAction } from "./actions";
 import { slugify, withSlugFallback } from "@/lib/utils/slugify";
+import { logout } from "@/lib/auth-client";
 
 type SerializedWorkspace = {
   id: string;
@@ -39,8 +41,16 @@ type SerializedWorkspace = {
   updatedAt: string;
 };
 
+type CurrentUserSummary = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+};
+
 type WorkspacesClientProps = {
   workspaces: SerializedWorkspace[];
+  currentUser: CurrentUserSummary;
 };
 
 type FeedbackState = {
@@ -327,7 +337,7 @@ function DeleteWorkspaceDialog({
   );
 }
 
-export function WorkspacesClient({ workspaces }: WorkspacesClientProps) {
+export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editWorkspace, setEditWorkspace] = useState<SerializedWorkspace | null>(null);
   const [deleteWorkspace, setDeleteWorkspace] = useState<SerializedWorkspace | null>(null);
@@ -335,11 +345,22 @@ export function WorkspacesClient({ workspaces }: WorkspacesClientProps) {
   const [createKey, setCreateKey] = useState(0);
   const [editKey, setEditKey] = useState(0);
   const [deleteKey, setDeleteKey] = useState(0);
+  const [isLogoutPending, startLogout] = useTransition();
 
   const sortedWorkspaces = useMemo(
     () => [...workspaces].sort((a, b) => a.name.localeCompare(b.name, "ru")),
     [workspaces],
   );
+
+  const displayName = currentUser.name ?? currentUser.email ?? "Пользователь";
+  const avatarAlt = displayName;
+  const avatarFallback = displayName.charAt(0).toUpperCase();
+
+  const handleLogout = () => {
+    startLogout(async () => {
+      await logout({ callbackUrl: "/" });
+    });
+  };
 
   const handleFeedback = (message: string) => {
     setFeedback({ message, severity: "success" });
@@ -363,6 +384,34 @@ export function WorkspacesClient({ workspaces }: WorkspacesClientProps) {
   return (
     <Container component="main" maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
       <Stack spacing={4}>
+        <Card variant="outlined">
+          <CardContent>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={3}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+            >
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Avatar src={currentUser.image ?? undefined} alt={avatarAlt}>
+                  {avatarFallback}
+                </Avatar>
+                <Box>
+                  <Typography fontWeight={600}>{displayName}</Typography>
+                  {currentUser.email ? (
+                    <Typography color="text.secondary" variant="body2">
+                      {currentUser.email}
+                    </Typography>
+                  ) : null}
+                </Box>
+              </Stack>
+              <Button variant="outlined" onClick={handleLogout} disabled={isLogoutPending}>
+                {isLogoutPending ? <CircularProgress size={20} /> : "Выйти"}
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
+
         <Stack
           direction={{ xs: "column", sm: "row" }}
           justifyContent="space-between"
