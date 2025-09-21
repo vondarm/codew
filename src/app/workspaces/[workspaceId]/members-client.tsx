@@ -370,9 +370,18 @@ export default function MembersClient({ workspace, members, currentUser }: Membe
               области.
             </Typography>
           </Box>
-          <Button component={Link} href={ROUTES.workspaces} variant="outlined">
-            К рабочим областям
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button component={Link} href={ROUTES.workspaces} variant="outlined">
+              К рабочим областям
+            </Button>
+            <Button
+              component={Link}
+              href={ROUTES.workspaceTemplates(workspace.id)}
+              variant="outlined"
+            >
+              Шаблоны
+            </Button>
+          </Stack>
         </Stack>
 
         <Card variant="outlined">
