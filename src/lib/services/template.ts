@@ -20,7 +20,6 @@ const NAME_MIN_LENGTH = 3;
 const NAME_MAX_LENGTH = 120;
 const DESCRIPTION_MAX_LENGTH = 500;
 const HIDDEN_DESCRIPTION_MAX_LENGTH = 1000;
-const CONTENT_MIN_LENGTH = 1;
 const CONTENT_MAX_LENGTH = 20000;
 
 export type TemplateField = "name" | "description" | "hiddenDescription" | "language" | "content";
@@ -112,13 +111,8 @@ function normalizeLanguage(rawLanguage: TemplateLanguage | string): TemplateLang
   throw new TemplateError("Выберите язык шаблона.", "VALIDATION_ERROR", "language");
 }
 
-function normalizeContent(rawContent: string): string {
+function normalizeContent(rawContent?: string | null): string {
   const normalized = (rawContent ?? "").replace(/\r\n/g, "\n");
-  const trimmed = normalized.trim();
-
-  if (trimmed.length < CONTENT_MIN_LENGTH) {
-    throw new TemplateError("Заполните содержимое шаблона.", "VALIDATION_ERROR", "content");
-  }
 
   if (normalized.length > CONTENT_MAX_LENGTH) {
     throw new TemplateError(
@@ -197,7 +191,7 @@ export type TemplateInput = {
   description?: string | null;
   hiddenDescription?: string | null;
   language: TemplateLanguage | string;
-  content: string;
+  content?: string | null;
 };
 
 export type SerializedTemplate = {

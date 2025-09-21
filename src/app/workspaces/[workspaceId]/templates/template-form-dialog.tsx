@@ -164,7 +164,6 @@ export default function TemplateFormDialog({
               name="content"
               value={content}
               onChange={(event) => setContent(event.target.value)}
-              required
               fullWidth
               multiline
               minRows={8}
@@ -172,7 +171,7 @@ export default function TemplateFormDialog({
               error={Boolean(state.fieldErrors?.content)}
               helperText={
                 state.fieldErrors?.content ??
-                "Вставьте фрагмент кода или текст, который хотите переиспользовать."
+                "Вставьте фрагмент кода или текст, который хотите переиспользовать (необязательно)."
               }
             />
           </Stack>

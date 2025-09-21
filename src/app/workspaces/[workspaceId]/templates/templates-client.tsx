@@ -93,8 +93,11 @@ export default function TemplatesClient({
   const [filterLanguage, setFilterLanguage] = useState<LanguageFilterValue>("ALL");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createDialogKey, setCreateDialogKey] = useState(0);
   const [editTarget, setEditTarget] = useState<SerializedTemplate | null>(null);
+  const [editDialogKey, setEditDialogKey] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<SerializedTemplate | null>(null);
+  const [deleteDialogKey, setDeleteDialogKey] = useState(0);
 
   const filteredTemplates = useMemo(() => {
     if (filterLanguage === "ALL") {
@@ -111,11 +114,11 @@ export default function TemplatesClient({
     }
 
     setSelectedTemplateId((current) => {
-      if (!current) {
-        return templates[0].id;
+      if (current && templates.some((template) => template.id === current)) {
+        return current;
       }
 
-      return templates.some((template) => template.id === current) ? current : templates[0].id;
+      return null;
     });
   }, [templates]);
 
@@ -130,7 +133,7 @@ export default function TemplatesClient({
         return current;
       }
 
-      return filteredTemplates[0]?.id ?? null;
+      return null;
     });
   }, [filteredTemplates]);
 
@@ -149,6 +152,25 @@ export default function TemplatesClient({
 
   const handleFeedback = (message: string, severity: "success" | "error" = "success") => {
     setFeedback({ message, severity });
+  };
+
+  const openCreateDialog = () => {
+    setIsCreateOpen(true);
+  };
+
+  const closeCreateDialog = () => {
+    setIsCreateOpen(false);
+    setCreateDialogKey((value) => value + 1);
+  };
+
+  const closeEditDialog = () => {
+    setEditTarget(null);
+    setEditDialogKey((value) => value + 1);
+  };
+
+  const closeDeleteDialog = () => {
+    setDeleteTarget(null);
+    setDeleteDialogKey((value) => value + 1);
   };
 
   return (
@@ -208,7 +230,7 @@ export default function TemplatesClient({
               </Box>
               <Stack direction="row" spacing={1}>
                 {canManage ? (
-                  <Button variant="contained" onClick={() => setIsCreateOpen(true)}>
+                  <Button variant="contained" onClick={openCreateDialog}>
                     Новый шаблон
                   </Button>
                 ) : null}
@@ -367,27 +389,30 @@ export default function TemplatesClient({
       </Stack>
 
       <TemplateFormDialog
+        key={`create-${createDialogKey}`}
         open={isCreateOpen}
         mode="create"
         workspaceId={workspace.id}
         languages={languageOptions}
-        onClose={() => setIsCreateOpen(false)}
+        onClose={closeCreateDialog}
         onSuccess={(message) => handleFeedback(message, "success")}
       />
       <TemplateFormDialog
+        key={`edit-${editDialogKey}-${editTarget?.id ?? "none"}`}
         open={Boolean(editTarget)}
         mode="edit"
         workspaceId={workspace.id}
         languages={languageOptions}
         template={editTarget}
-        onClose={() => setEditTarget(null)}
+        onClose={closeEditDialog}
         onSuccess={(message) => handleFeedback(message, "success")}
       />
       <TemplateDeleteDialog
+        key={`delete-${deleteDialogKey}-${deleteTarget?.id ?? "none"}`}
         open={Boolean(deleteTarget)}
         workspaceId={workspace.id}
         template={deleteTarget}
-        onClose={() => setDeleteTarget(null)}
+        onClose={closeDeleteDialog}
         onSuccess={(message) => handleFeedback(message, "success")}
       />
     </Container>
