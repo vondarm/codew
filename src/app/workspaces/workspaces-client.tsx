@@ -507,6 +507,14 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
                         <TableCell>{formatDate(workspace.createdAt)}</TableCell>
                         <TableCell align="right">
                           <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              component={Link}
+                              href={ROUTES.workspaceTemplates(workspace.id)}
+                            >
+                              Шаблоны
+                            </Button>
                             {workspace.role === "ADMIN" ? (
                               <Button
                                 size="small"
