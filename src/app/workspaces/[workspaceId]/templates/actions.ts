@@ -6,20 +6,12 @@ import { TemplateLanguage } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import {
   TemplateError,
-  type TemplateField,
   createTemplate,
   updateTemplate,
   deleteTemplate,
 } from "@/lib/services/template";
+import type { TemplateActionState } from "./template-action-state";
 import { ROUTES } from "@/routes";
-
-export type TemplateActionState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-  fieldErrors?: Partial<Record<TemplateField, string>>;
-};
-
-const idleState: TemplateActionState = { status: "idle" };
 
 function buildErrorState(error: unknown, fallbackMessage: string): TemplateActionState {
   if (error instanceof TemplateError) {
@@ -213,5 +205,3 @@ export async function deleteTemplateAction(
     return buildErrorState(error, "Не удалось удалить шаблон.");
   }
 }
-
-export { idleState as templateActionIdleState };
