@@ -9,7 +9,7 @@
 3. Примените миграции и сгенерируйте Prisma Client: `yarn prisma migrate dev`
 4. Запустите dev-сервер: `yarn dev`
 
-Подробные инструкции и чек-лист smoke-проверок доступны в [docs/setup.md](docs/setup.md). Обзор рабочих областей и сервисных контрактов — в [docs/workspaces.md](docs/workspaces.md).
+Подробные инструкции и чек-лист smoke-проверок доступны в [docs/setup.md](docs/setup.md). Обзор рабочих областей и сервисных контрактов — в [docs/workspaces.md](docs/workspaces.md). Документация по библиотеке шаблонов расположена в [docs/templates.md](docs/templates.md).
 
 > Перед запуском убедитесь, что переменная `DATABASE_URL` указывает на доступный экземпляр PostgreSQL.
 

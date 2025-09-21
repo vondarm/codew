@@ -45,6 +45,16 @@ const adminMembership: Member = {
   updatedAt: new Date(),
 };
 
+const adminUser: User = {
+  id: adminMembership.userId,
+  email: "admin@example.com",
+  name: "Admin",
+  image: null,
+  emailVerified: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockedWorkspaceRepo.findWorkspaceById.mockResolvedValue(workspace);
@@ -127,16 +137,6 @@ describe("MemberService", () => {
 
       return null;
     });
-
-    const adminUser: User = {
-      id: adminMembership.userId,
-      email: "admin@example.com",
-      name: "Admin",
-      image: null,
-      emailVerified: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
 
     mockedMemberRepo.findMemberById.mockResolvedValue({
       ...adminMembership,

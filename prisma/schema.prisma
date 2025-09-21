@@ -18,6 +18,7 @@ model User {
   workspaces    Workspace[]
   memberships   Member[]
   invitedMembers Member[] @relation("MemberInvitedBy")
+  templates     Template[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -71,6 +72,7 @@ model Workspace {
   ownerId   String
   owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members   Member[]
+  templates Template[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -99,4 +101,29 @@ model Member {
   @@unique([workspaceId, userId])
   @@index([workspaceId])
   @@index([userId])
+}
+
+enum TemplateLanguage {
+  JAVASCRIPT
+  TYPESCRIPT
+  REACT
+}
+
+model Template {
+  id           String           @id @default(cuid())
+  workspaceId  String
+  createdById  String
+  name         String
+  description  String?
+  hiddenDescription String?
+  language     TemplateLanguage
+  content      String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@unique([workspaceId, name])
 }

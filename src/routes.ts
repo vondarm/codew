@@ -9,6 +9,9 @@ export const ROUTES = {
   workspace(workspaceId: string) {
     return `/workspaces/${workspaceId}`;
   },
+  workspaceTemplates(workspaceId: string) {
+    return `/workspaces/${workspaceId}/templates`;
+  },
   signin({ callbackUrl }: SignInRouteParams) {
     return `/api/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
   },
