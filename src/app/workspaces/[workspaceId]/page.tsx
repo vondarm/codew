@@ -21,17 +21,19 @@ type WorkspacePageParams = {
 };
 
 type PageProps = {
-  params: WorkspacePageParams;
+  params: Promise<WorkspacePageParams>;
 };
 
 export default async function WorkspaceMembersPage({ params }: PageProps) {
+  const { workspaceId } = await params;
+
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect(ROUTES.signin({ callbackUrl: ROUTES.workspace(params.workspaceId) }));
+    redirect(ROUTES.signin({ callbackUrl: ROUTES.workspace(workspaceId) }));
   }
 
-  const workspace = await findWorkspaceById(params.workspaceId);
+  const workspace = await findWorkspaceById(workspaceId);
 
   if (!workspace) {
     notFound();
