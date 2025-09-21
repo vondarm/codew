@@ -16,6 +16,8 @@ model User {
   accounts      Account[]
   sessions      Session[]
   workspaces    Workspace[]
+  memberships   Member[]
+  invitedMembers Member[] @relation("MemberInvitedBy")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -68,8 +70,33 @@ model Workspace {
   slug      String   @unique
   ownerId   String
   owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members   Member[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([ownerId])
+}
+
+enum MemberRole {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+model Member {
+  id           String     @id @default(cuid())
+  workspaceId  String
+  userId       String
+  invitedById  String?
+  role         MemberRole @default(VIEWER)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User?     @relation("MemberInvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+  @@index([userId])
 }
