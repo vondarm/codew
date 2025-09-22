@@ -12,7 +12,9 @@ import {
   Chip,
   Container,
   Divider,
+  Drawer,
   FormControl,
+  IconButton,
   InputLabel,
   List,
   ListItem,
@@ -24,10 +26,13 @@ import {
   Typography,
 } from "@mui/material";
 
+import CloseIcon from "@mui/icons-material/Close";
+
 import type { SerializedTemplate } from "@/lib/services/template";
 import { ROUTES } from "@/routes";
 
 import TemplateFormDialog from "./template-form-dialog";
+import TemplateForm from "./template-form";
 import TemplateDeleteDialog from "./template-delete-dialog";
 
 type WorkspaceSummary = {
@@ -94,8 +99,9 @@ export default function TemplatesClient({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createDialogKey, setCreateDialogKey] = useState(0);
-  const [editTarget, setEditTarget] = useState<SerializedTemplate | null>(null);
-  const [editDialogKey, setEditDialogKey] = useState(0);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<"view" | "edit">("view");
+  const [isDrawerPending, setIsDrawerPending] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SerializedTemplate | null>(null);
   const [deleteDialogKey, setDeleteDialogKey] = useState(0);
 
@@ -163,15 +169,34 @@ export default function TemplatesClient({
     setCreateDialogKey((value) => value + 1);
   };
 
-  const closeEditDialog = () => {
-    setEditTarget(null);
-    setEditDialogKey((value) => value + 1);
-  };
-
   const closeDeleteDialog = () => {
     setDeleteTarget(null);
     setDeleteDialogKey((value) => value + 1);
   };
+
+  const openDrawerForTemplate = (templateId: string, mode: "view" | "edit" = "view") => {
+    setSelectedTemplateId(templateId);
+    setDrawerMode(mode);
+    setIsDrawerPending(false);
+    setIsDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    if (isDrawerPending) {
+      return;
+    }
+
+    setIsDrawerOpen(false);
+    setDrawerMode("view");
+    setIsDrawerPending(false);
+  };
+
+  useEffect(() => {
+    if (!selectedTemplate) {
+      setIsDrawerOpen(false);
+      setDrawerMode("view");
+    }
+  }, [selectedTemplate]);
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
@@ -290,7 +315,7 @@ export default function TemplatesClient({
                             size="small"
                             onClick={(event) => {
                               event.stopPropagation();
-                              setEditTarget(template);
+                              openDrawerForTemplate(template.id, "edit");
                             }}
                           >
                             Редактировать
@@ -311,7 +336,7 @@ export default function TemplatesClient({
                   >
                     <ListItemButton
                       selected={selectedTemplateId === template.id}
-                      onClick={() => setSelectedTemplateId(template.id)}
+                      onClick={() => openDrawerForTemplate(template.id, "view")}
                     >
                       <ListItemText
                         primary={template.name}
@@ -324,11 +349,46 @@ export default function TemplatesClient({
             )}
           </CardContent>
         </Card>
+      </Stack>
 
-        <Card variant="outlined">
-          <CardContent>
+      <Drawer
+        anchor="right"
+        open={isDrawerOpen && Boolean(selectedTemplate)}
+        onClose={closeDrawer}
+        ModalProps={{ keepMounted: true }}
+        PaperProps={{
+          sx: {
+            width: { xs: "100%", sm: 420, md: 520 },
+            height: "100vh",
+            display: "flex",
+            flexDirection: "column",
+          },
+        }}
+      >
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ px: 3, py: 2, borderBottom: 1, borderColor: "divider" }}
+        >
+          <Box>
+            <Typography variant="h6">
+              {drawerMode === "view" ? "Просмотр шаблона" : "Редактирование шаблона"}
+            </Typography>
             {selectedTemplate ? (
-              <Stack spacing={2}>
+              <Typography variant="body2" color="text.secondary">
+                {selectedTemplate.name}
+              </Typography>
+            ) : null}
+          </Box>
+          <IconButton onClick={closeDrawer} disabled={isDrawerPending}>
+            <CloseIcon />
+          </IconButton>
+        </Stack>
+        {selectedTemplate ? (
+          drawerMode === "view" ? (
+            <Box sx={{ flex: 1, overflow: "auto" }}>
+              <Stack spacing={3} sx={{ p: 3 }}>
                 <Stack
                   direction={{ xs: "column", md: "row" }}
                   spacing={1}
@@ -373,20 +433,64 @@ export default function TemplatesClient({
                     px: 2,
                     py: 2,
                     borderRadius: 1,
-                    overflowX: "auto",
+                    overflow: "auto",
                   }}
                 >
                   {selectedTemplate.content}
                 </Box>
+                {canManage ? (
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={1}
+                    justifyContent="flex-end"
+                  >
+                    <Button
+                      variant="contained"
+                      onClick={() => openDrawerForTemplate(selectedTemplate.id, "edit")}
+                    >
+                      Редактировать
+                    </Button>
+                    <Button
+                      color="error"
+                      onClick={() => {
+                        setDeleteTarget(selectedTemplate);
+                      }}
+                    >
+                      Удалить
+                    </Button>
+                  </Stack>
+                ) : null}
               </Stack>
-            ) : (
-              <Typography color="text.secondary">
-                Выберите шаблон, чтобы посмотреть содержимое.
-              </Typography>
-            )}
-          </CardContent>
-        </Card>
-      </Stack>
+            </Box>
+          ) : (
+            <Box sx={{ flex: 1, overflow: "hidden" }}>
+              <TemplateForm
+                mode="edit"
+                workspaceId={workspace.id}
+                languages={languageOptions}
+                template={selectedTemplate}
+                onCancel={() => {
+                  setIsDrawerPending(false);
+                  setDrawerMode("view");
+                }}
+                onSuccess={(message) => {
+                  handleFeedback(message, "success");
+                  setIsDrawerPending(false);
+                  setDrawerMode("view");
+                }}
+                onPendingChange={setIsDrawerPending}
+              >
+                {({ fields, actions }) => (
+                  <Stack sx={{ height: "100%" }}>
+                    <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>{fields}</Box>
+                    <Box sx={{ px: 3, pb: 3, pt: 1 }}>{actions}</Box>
+                  </Stack>
+                )}
+              </TemplateForm>
+            </Box>
+          )
+        ) : null}
+      </Drawer>
 
       <TemplateFormDialog
         key={`create-${createDialogKey}`}
@@ -395,16 +499,6 @@ export default function TemplatesClient({
         workspaceId={workspace.id}
         languages={languageOptions}
         onClose={closeCreateDialog}
-        onSuccess={(message) => handleFeedback(message, "success")}
-      />
-      <TemplateFormDialog
-        key={`edit-${editDialogKey}-${editTarget?.id ?? "none"}`}
-        open={Boolean(editTarget)}
-        mode="edit"
-        workspaceId={workspace.id}
-        languages={languageOptions}
-        template={editTarget}
-        onClose={closeEditDialog}
         onSuccess={(message) => handleFeedback(message, "success")}
       />
       <TemplateDeleteDialog
