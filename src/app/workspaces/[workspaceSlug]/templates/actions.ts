@@ -10,8 +10,9 @@ import {
   updateTemplate,
   deleteTemplate,
 } from "@/lib/services/template";
-import type { TemplateActionState } from "./template-action-state";
+import { findWorkspaceById } from "@/lib/prisma/workspace";
 import { ROUTES } from "@/routes";
+import type { TemplateActionState } from "./template-action-state";
 
 function buildErrorState(error: unknown, fallbackMessage: string): TemplateActionState {
   if (error instanceof TemplateError) {
@@ -31,6 +32,14 @@ function buildErrorState(error: unknown, fallbackMessage: string): TemplateActio
     status: "error",
     message: fallbackMessage,
   };
+}
+
+async function revalidateWorkspaceTemplates(workspaceId: string) {
+  const workspace = await findWorkspaceById(workspaceId);
+
+  if (workspace) {
+    revalidatePath(ROUTES.workspaceTemplates(workspace.slug));
+  }
 }
 
 function parseLanguage(raw: FormDataEntryValue | null): TemplateLanguage | null {
@@ -93,7 +102,7 @@ export async function createTemplateAction(
       content,
     });
 
-    revalidatePath(ROUTES.workspaceTemplates(workspaceId));
+    await revalidateWorkspaceTemplates(workspaceId);
 
     return {
       status: "success",
@@ -156,7 +165,7 @@ export async function updateTemplateAction(
       content,
     });
 
-    revalidatePath(ROUTES.workspaceTemplates(workspaceId));
+    await revalidateWorkspaceTemplates(workspaceId);
 
     return {
       status: "success",
@@ -195,7 +204,7 @@ export async function deleteTemplateAction(
 
   try {
     await deleteTemplate(user.id, workspaceId, templateId);
-    revalidatePath(ROUTES.workspaceTemplates(workspaceId));
+    await revalidateWorkspaceTemplates(workspaceId);
 
     return {
       status: "success",

@@ -6,11 +6,11 @@ export const ROUTES = {
   home: "/",
   workspaces: "/workspaces",
   apiHello: "/api/hello",
-  workspace(workspaceId: string) {
-    return `/workspaces/${workspaceId}`;
+  workspace(workspaceSlug: string) {
+    return `/workspaces/${workspaceSlug}`;
   },
-  workspaceTemplates(workspaceId: string) {
-    return `/workspaces/${workspaceId}/templates`;
+  workspaceTemplates(workspaceSlug: string) {
+    return `/workspaces/${workspaceSlug}/templates`;
   },
   signin({ callbackUrl }: SignInRouteParams) {
     return `/api/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
