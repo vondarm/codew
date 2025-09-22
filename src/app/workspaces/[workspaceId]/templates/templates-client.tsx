@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { ComponentProps } from "react";
 import type { MemberRole, TemplateLanguage } from "@prisma/client";
 import Link from "next/link";
 import {
@@ -23,10 +24,9 @@ import {
   MenuItem,
   Select,
   Stack,
+  SvgIcon,
   Typography,
 } from "@mui/material";
-
-import CloseIcon from "@mui/icons-material/Close";
 
 import type { SerializedTemplate } from "@/lib/services/template";
 import { ROUTES } from "@/routes";
@@ -34,6 +34,16 @@ import { ROUTES } from "@/routes";
 import TemplateFormDialog from "./template-form-dialog";
 import TemplateForm from "./template-form";
 import TemplateDeleteDialog from "./template-delete-dialog";
+
+type CloseIconProps = ComponentProps<typeof SvgIcon>;
+
+function CloseIcon(props: CloseIconProps) {
+  return (
+    <SvgIcon {...props}>
+      <path d="M18.3 5.71a1 1 0 0 0-1.41-1.42L12 9.59 7.11 4.7A1 1 0 0 0 5.7 6.11L10.59 11l-4.89 4.89a1 1 0 1 0 1.41 1.41L12 12.41l4.89 4.89a1 1 0 0 0 1.41-1.41L13.41 11l4.89-4.89Z" />
+    </SvgIcon>
+  );
+}
 
 type WorkspaceSummary = {
   id: string;
