@@ -511,6 +511,14 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
                               size="small"
                               variant="outlined"
                               component={Link}
+                              href={ROUTES.workspaceRooms(workspace.id)}
+                            >
+                              Комнаты
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              component={Link}
                               href={ROUTES.workspaceTemplates(workspace.id)}
                             >
                               Шаблоны
