@@ -32,7 +32,7 @@ import type { SerializedTemplate } from "@/lib/services/template";
 import { ROUTES } from "@/routes";
 
 import TemplateFormDialog from "./template-form-dialog";
-import TemplateForm from "./template-form";
+import TemplateForm, { languageLabel } from "./template-form";
 import TemplateDeleteDialog from "./template-delete-dialog";
 
 type CloseIconProps = ComponentProps<typeof SvgIcon>;
@@ -78,12 +78,6 @@ const ROLE_LABELS: Record<MemberRole, string> = {
   ADMIN: "Администратор",
   EDITOR: "Редактор",
   VIEWER: "Наблюдатель",
-};
-
-const LANGUAGE_LABELS: Record<string, string> = {
-  JAVASCRIPT: "JavaScript",
-  TYPESCRIPT: "TypeScript",
-  REACT: "React",
 };
 
 function formatDate(value: string): string {
@@ -299,7 +293,7 @@ export default function TemplatesClient({
                   <MenuItem value="ALL">Все языки</MenuItem>
                   {languageOptions.map((language) => (
                     <MenuItem key={language} value={language}>
-                      {LANGUAGE_LABELS[language] ?? language}
+                      {languageLabel(language)}
                     </MenuItem>
                   ))}
                 </Select>
@@ -350,7 +344,7 @@ export default function TemplatesClient({
                     >
                       <ListItemText
                         primary={template.name}
-                        secondary={`${LANGUAGE_LABELS[template.language] ?? template.language} • обновлён ${formatDate(template.updatedAt)}`}
+                        secondary={`${languageLabel(template.language)} • обновлён ${formatDate(template.updatedAt)}`}
                       />
                     </ListItemButton>
                   </ListItem>
@@ -413,9 +407,7 @@ export default function TemplatesClient({
                   </Box>
                   <Stack direction="row" spacing={1}>
                     <Chip
-                      label={
-                        LANGUAGE_LABELS[selectedTemplate.language] ?? selectedTemplate.language
-                      }
+                      label={languageLabel(selectedTemplate.language)}
                       color="primary"
                       variant="outlined"
                     />
