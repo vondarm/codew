@@ -87,8 +87,18 @@ function withRoomSlugFallback(slug: string): string {
   return base.slice(0, SLUG_MAX_LENGTH);
 }
 
-function prepareSlugCandidate(name: string, slugInput?: string | null): string {
-  const base = slugify(slugInput && slugInput.length > 0 ? slugInput : name);
+function prepareSlugCandidate(slugInput?: string | null): string | null {
+  if (!slugInput) {
+    return null;
+  }
+
+  const trimmed = slugInput.trim();
+
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  const base = slugify(trimmed);
   const withFallback = withRoomSlugFallback(base);
 
   if (withFallback.length > SLUG_MAX_LENGTH) {
@@ -264,32 +274,41 @@ function buildRandomSuffix(): string {
   return `-${value}`;
 }
 
+function buildRandomSlug(): string {
+  return applySlugSuffix("room", buildRandomSuffix());
+}
+
 export async function generateUniqueSlug(
-  name: string,
+  _name: string,
   options?: { slug?: string | null; currentRoomId?: string; forceRegenerate?: boolean },
   client?: Prisma.TransactionClient,
 ): Promise<string> {
-  const baseCandidate = prepareSlugCandidate(name, options?.slug);
-  let candidate = baseCandidate;
-  let attempt = 0;
+  const customCandidate = prepareSlugCandidate(options?.slug);
+  const hasCustomSlug = customCandidate !== null;
   const forceRegenerate = options?.forceRegenerate ?? false;
+  const shouldUseRandom = !hasCustomSlug || forceRegenerate;
 
-  if (forceRegenerate) {
-    candidate = applySlugSuffix(baseCandidate, buildRandomSuffix());
-  }
+  let candidate = hasCustomSlug ? customCandidate : buildRandomSlug();
+  let attempt = 0;
 
   while (true) {
     const existing = await findRoomBySlug(candidate, client);
 
-    if (!existing || existing.id === options?.currentRoomId) {
-      if (!forceRegenerate || candidate !== baseCandidate || !existing) {
-        return candidate;
-      }
+    if (!existing) {
+      return candidate;
+    }
+
+    if (existing.id === options?.currentRoomId && !forceRegenerate) {
+      return candidate;
     }
 
     attempt += 1;
-    const suffix = `-${attempt + 1}`;
-    candidate = applySlugSuffix(baseCandidate, suffix);
+    if (shouldUseRandom) {
+      candidate = buildRandomSlug();
+    } else {
+      const suffix = `-${attempt + 1}`;
+      candidate = applySlugSuffix(customCandidate!, suffix);
+    }
   }
 }
 
