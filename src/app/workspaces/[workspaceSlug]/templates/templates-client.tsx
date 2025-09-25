@@ -224,7 +224,7 @@ export default function TemplatesClient({
             <Button component={Link} href={ROUTES.workspaces} variant="outlined">
               К рабочим областям
             </Button>
-            <Button component={Link} href={ROUTES.workspace(workspace.id)} variant="outlined">
+            <Button component={Link} href={ROUTES.workspace(workspace.slug)} variant="outlined">
               Участники
             </Button>
           </Stack>

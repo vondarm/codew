@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { MemberRole, TemplateLanguage } from "@prisma/client";
 
 import { getCurrentUser } from "@/lib/auth";
-import { findWorkspaceById } from "@/lib/prisma/workspace";
+import { findWorkspaceBySlug } from "@/lib/prisma/workspace";
 import { findMemberByWorkspaceAndUserId } from "@/lib/prisma/member";
 import {
   listTemplates,
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 type WorkspaceTemplatesPageParams = {
-  workspaceId: string;
+  workspaceSlug: string;
 };
 
 type PageProps = {
@@ -28,15 +28,15 @@ type PageProps = {
 };
 
 export default async function WorkspaceTemplatesPage({ params }: PageProps) {
-  const { workspaceId } = await params;
+  const { workspaceSlug } = await params;
 
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect(ROUTES.signin({ callbackUrl: ROUTES.workspaceTemplates(workspaceId) }));
+    redirect(ROUTES.signin({ callbackUrl: ROUTES.workspaceTemplates(workspaceSlug) }));
   }
 
-  const workspace = await findWorkspaceById(workspaceId);
+  const workspace = await findWorkspaceBySlug(workspaceSlug);
 
   if (!workspace) {
     notFound();
