@@ -7,14 +7,17 @@ import { ROUTES } from "@/routes";
 import { SignInForm } from "./signin-form";
 
 type SignInPageProps = {
-  searchParams?: {
-    callbackUrl?: string;
-  };
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default function SignInPage({ searchParams }: SignInPageProps) {
-  const callbackUrlParam =
-    typeof searchParams?.callbackUrl === "string" ? searchParams.callbackUrl : undefined;
+export default async function SignInPage({ searchParams }: SignInPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const rawCallbackUrl = resolvedSearchParams?.callbackUrl;
+  const callbackUrlParam = Array.isArray(rawCallbackUrl)
+    ? rawCallbackUrl[0]
+    : typeof rawCallbackUrl === "string"
+      ? rawCallbackUrl
+      : undefined;
   const callbackUrl =
     callbackUrlParam && callbackUrlParam.length > 0 ? callbackUrlParam : ROUTES.workspaces;
 
