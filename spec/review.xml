@@ -1,0 +1,90 @@
+<review>
+  <summary>
+    Подготовлен план рефакторинга для приведения клиентских страниц управления рабочими областями к модульной архитектуре с явными слоями и выносом бизнес-логики из React-компонентов.
+  </summary>
+  <issues>
+    <issue id="workspace-client-bloat" severity="high">
+      <title>Монолитный WorkspacesClient смешивает представление, бизнес-правила и побочные эффекты</title>
+      <description>
+        Компонент <code>WorkspacesClient</code> одновременно отвечает за отображение таблицы, управление состоянием диалогов, обработку побочных эффектов (logout, snackbar) и подготовку данных (сортировка, форматирование дат, вычисление ролей). Размер файла превышает 400 строк, что усложняет сопровождение и переиспользование логики. В текущем виде нарушается требование разделения на слои и направление зависимостей (UI напрямую знает о структурах данных и бизнес-правилах).
+      </description>
+      <evidence>
+        src/app/workspaces/workspaces-client.tsx
+      </evidence>
+      <plan>
+        <step>Создать модуль <code>src/features/workspaces/list</code>, куда перенести WorkspacesClient и разбить его на: контейнер (хуки и обработчики) и презентационные компоненты (Header, WorkspaceTable, UserCard, FeedbackProvider).</step>
+        <step>Вынести бизнес-логику (сортировка, вычисление роли, форматирование дат, генерация slug) в кастомный хук <code>useWorkspaceManager</code> в слое features. Компонент оставит только декларативный JSX.</step>
+        <step>Диалоги создания/редактирования/удаления превратить в самостоятельные компоненты с чистыми пропсами, а их состояние управлять через объединённый хук (например, <code>useWorkspaceDialogs</code>) либо редьюсер.</step>
+        <step>Выделить общий компонент/хук для отображения Snackbar/Alert, чтобы переиспользовать в других экранах.</step>
+        <step>Обновить страницу <code>workspaces/page.tsx</code>, чтобы она импортировала новый контейнер из features и передавала сериализованные данные через согласованный тип (например, DTO из слоя services).</step>
+      </plan>
+    </issue>
+    <issue id="members-client-bloat" severity="high">
+      <title>MembersClient дублирует логику и включает тяжёлые формы/диалоги</title>
+      <description>
+        Файл <code>members-client.tsx</code> содержит более 450 строк, включая три диалога, форму приглашения, таблицу и вычисление бизнес-правил (подсчёт администраторов, сортировка участников, проверка ограничения на удаление последнего администратора). Это приводит к высокой связности и дублированию (например, рендеринг тегов ролей, повторяющиеся элементы таблицы). Компоненту трудно писать тесты и повторно использовать фрагменты логики.</description>
+      <evidence>
+        src/app/workspaces/[workspaceSlug]/members-client.tsx
+      </evidence>
+      <plan>
+        <step>Создать фиче-модуль <code>src/features/workspaces/members</code> и переместить туда MembersClient, разделив на подкомпоненты: MembersHeader, WorkspaceSummaryCard, InviteMemberForm, MembersTable, ChangeRoleDialog, RemoveMemberDialog.</step>
+        <step>Вынести вычисления и состояние (сортировка, adminCount, feedback) в кастомный хук <code>useWorkspaceMembers</code>, который будет использовать сервис <code>member</code> и возвращать мемоизированные данные и колбэки.</step>
+        <step>Общие элементы (форматирование ролей, перевод ролей в визуальные стили) вынести в модуль утилит или shared hook, чтобы использовать также на страницах списков рабочих областей.</step>
+        <step>Переподключить серверные действия через единый слой hooks (например, <code>useMemberMutations</code>), который будет оборачивать <code>useActionState</code> и прятать детали FormData.</step>
+      </plan>
+    </issue>
+    <issue id="rooms-client-bloat" severity="high">
+      <title>RoomsClient сочетает управление множеством модальных окон, бизнес-проверки и JSX</title>
+      <description>
+        Компонент <code>RoomsClient</code> управляет тремя диалогами, содержит вспомогательные функции для копирования ссылок, форматирования дат и вычисления статусов, а также определяет UI карточек и таблиц. Локальные состояния для ключей перерендеров, уведомлений и ролей делают компонент сложным для чтения и сопровождения.</description>
+      <evidence>
+        src/app/workspaces/[workspaceSlug]/rooms/rooms-client.tsx
+      </evidence>
+      <plan>
+        <step>Переместить RoomsClient в модуль <code>src/features/workspaces/rooms</code>, разбив на контейнер и презентационные компоненты (RoomsHeader, RoomsTable, WorkspaceInfoCard).</step>
+        <step>Создать хук <code>useRoomDialogs</code> для управления состояниями всех модальных окон (форма, закрытие, смена slug), сократив количество локальных useState/useMemo в основном компоненте.</step>
+        <step>Вынести функции форматирования даты, отображения статуса и копирования ссылки в отдельные утилиты/хуки, чтобы обеспечить переиспользование и тестируемость.</step>
+        <step>Диалоги <code>RoomFormDialog</code>, <code>RoomCloseDialog</code>, <code>RoomSlugDialog</code> оставить как презентационные компоненты и перевести на общую контрактную модель (например, принимать <code>mutation</code> из useRoomMutations вместо прямого <code>useActionState</code> внутри), чтобы облегчить тесты и повторное использование.</step>
+      </plan>
+    </issue>
+    <issue id="server-action-duplication" severity="medium">
+      <title>Серверные actions дублируют парсинг FormData и проверку пользователя</title>
+      <description>
+        Файлы <code>workspaces/actions.ts</code>, <code>[workspaceSlug]/members-actions.ts</code> и <code>[workspaceSlug]/rooms/actions.ts</code> выполняют идентичные операции: получение текущего пользователя, чтение/нормализацию полей FormData, построение ответов ошибки. Дублирование усложняет изменение требований (например, локализация сообщений или валидация) и увеличивает риск расхождений.</description>
+      <evidence>
+        src/app/workspaces/actions.ts; src/app/workspaces/[workspaceSlug]/members-actions.ts; src/app/workspaces/[workspaceSlug]/rooms/actions.ts
+      </evidence>
+      <plan>
+        <step>Создать в <code>src/features/shared/server-actions</code> вспомогательные функции: <code>requireUser()</code>, <code>parseFormFields(schema)</code> (на базе zod/yup или собственной реализации), <code>buildActionError</code> для трансформации доменных ошибок в состояние формы.</step>
+        <step>Переписать server actions, чтобы они использовали новые утилиты и возвращали унифицированный <code>ActionState</code> (status/message/fieldErrors). Это позволит уменьшить объём файлов и упростит тестирование.</step>
+        <step>Рассмотреть вынесение повторяющихся констант сообщений в слой локализации/конфигурации.</step>
+      </plan>
+    </issue>
+    <issue id="serialization-scattering" severity="medium">
+      <title>Сериализация доменных сущностей размазана по страницам</title>
+      <description>
+        Страницы Next.js самостоятельно трансформируют сущности Prisma в plain-объекты (например, в <code>workspaces/page.tsx</code> и <code>[workspaceSlug]/page.tsx</code>). Это приводит к дублированию структуры DTO и знания о бизнес-логике в UI-слое.</description>
+      <evidence>
+        src/app/workspaces/page.tsx; src/app/workspaces/[workspaceSlug]/page.tsx
+      </evidence>
+      <plan>
+        <step>Добавить слой мапперов/DTO в сервисах (<code>src/lib/services</code>) или в новом модуле <code>src/features/workspaces/api</code>, который будет возвращать сериализованные данные (например, <code>WorkspaceSummaryDTO</code>, <code>MemberDTO</code>).</step>
+        <step>Обновить страницы, чтобы использовать готовые DTO и не выполнять сериализацию самостоятельно. Это снизит размер файлов страниц и сделает формат данных единообразным.</step>
+        <step>Добавить типы, описывающие публичный контракт данных между сервером и клиентскими компонентами, чтобы предотвратить расхождение после будущих изменений схемы.</step>
+      </plan>
+    </issue>
+    <issue id="shared-ui-absence" severity="low">
+      <title>Повторяющиеся визуальные элементы не вынесены в общий UI слой</title>
+      <description>
+        В разных компонентах используются схожие карточки заголовков, таблицы с действиями, стеки навигации. Отсутствие общей библиотеки ведёт к дублированию JSX и стилей.</description>
+      <evidence>
+        src/app/workspaces/workspaces-client.tsx; src/app/workspaces/[workspaceSlug]/members-client.tsx; src/app/workspaces/[workspaceSlug]/rooms/rooms-client.tsx
+      </evidence>
+      <plan>
+        <step>Выделить слой <code>src/shared/ui</code> для переиспользуемых компонентов (SectionHeader, EmptyState, EntityTable, EntityActions).</step>
+        <step>Переписать фиче-компоненты так, чтобы они использовали общий UI, передавая только данные и колбэки.</step>
+        <step>Обновить тесты/стори, если они появятся, чтобы закрепить единый стиль.</step>
+      </plan>
+    </issue>
+  </issues>
+</review>
