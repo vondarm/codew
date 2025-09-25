@@ -57,9 +57,16 @@ Slug формируется функциями `slugify` и `withSlugFallback` (
 - `deleteWorkspaceAction` вызывается напрямую из клиентского компонента через `useTransition`.
 - Все действия проверяют, что пользователь аутентифицирован (`getCurrentUser`) и выполняют `revalidatePath("/workspaces")` после успешной операции.
 
-## UI страницы `/workspaces`
+## Архитектура клиентского модуля
 
-Маршрут `src/app/workspaces/page.tsx` является защищённым — неавторизованных пользователей перенаправляет на страницу входа NextAuth. Список рабочих областей загружается на сервере и передаётся клиентскому компоненту `WorkspacesClient` (`src/app/workspaces/workspaces-client.tsx`).
+Маршрут `src/app/workspaces/page.tsx` защищён — неавторизованных пользователей перенаправляет на страницу входа NextAuth. Список рабочих областей загружается на сервере и передаётся фиче-модулю `WorkspacesList` (`src/features/workspaces/list`). Модуль разделён на несколько слоёв:
+
+- **Контейнер** `WorkspacesList` инкапсулирует побочные эффекты (logout, snackbar) и управляет состояниями диалогов через хуки `useWorkspaceDialogs` и `useWorkspaceFeedback`.
+- **Хук бизнес-логики** `useWorkspacesManager` отвечает за сортировку, вычисление ролей и форматирование дат, не смешивая их с JSX.
+- **Презентационные компоненты** (`UserCard`, `WorkspacesHeader`, `WorkspacesTable`, `FeedbackSnackbar`) получают данные через чистые пропсы и не знают о серверных действиях.
+- **Диалоги** (`CreateWorkspaceDialog`, `EditWorkspaceDialog`, `DeleteWorkspaceDialog`) вынесены в отдельный компонент `workspace-dialogs.tsx` и используют унифицированные колбэки `onSuccess`/`onClose`.
+
+Такое разделение упрощает переиспользование логики и добавление тестов, а также держит UI-слой декларативным.
 
 Интерфейс построен на Material UI и включает:
 

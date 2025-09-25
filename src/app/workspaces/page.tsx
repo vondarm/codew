@@ -6,7 +6,7 @@ import { listWorkspaces } from "@/lib/services/workspace";
 
 import { ROUTES } from "@/routes";
 
-import WorkspacesClient from "./workspaces-client";
+import { WorkspacesList } from "@/features/workspaces/list";
 
 export const metadata: Metadata = {
   title: "Рабочие области — CodeW",
@@ -33,7 +33,7 @@ export default async function WorkspacesPage() {
   }));
 
   return (
-    <WorkspacesClient
+    <WorkspacesList
       workspaces={serialized}
       currentUser={{
         id: user.id,
