@@ -10,6 +10,7 @@ import {
   changeRole,
   removeMember,
 } from "@/lib/services/member";
+import { findWorkspaceById } from "@/lib/prisma/workspace";
 import { ROUTES } from "@/routes";
 import { MemberRole } from "@prisma/client";
 
@@ -20,6 +21,14 @@ export type MemberActionState = {
 };
 
 const idleState: MemberActionState = { status: "idle" };
+
+async function revalidateWorkspaceMembers(workspaceId: string) {
+  const workspace = await findWorkspaceById(workspaceId);
+
+  if (workspace) {
+    revalidatePath(ROUTES.workspace(workspace.slug));
+  }
+}
 
 function buildErrorState(error: unknown, fallbackMessage: string): MemberActionState {
   if (error instanceof MemberServiceError) {
@@ -86,7 +95,7 @@ export async function inviteMemberAction(
 
   try {
     await inviteMember({ workspaceId, inviterId: user.id, email, role });
-    revalidatePath(ROUTES.workspace(workspaceId));
+    await revalidateWorkspaceMembers(workspaceId);
 
     return {
       status: "success",
@@ -134,7 +143,7 @@ export async function changeMemberRoleAction(
 
   try {
     await changeRole({ workspaceId, actorId: user.id, memberId, role });
-    revalidatePath(ROUTES.workspace(workspaceId));
+    await revalidateWorkspaceMembers(workspaceId);
 
     return {
       status: "success",
@@ -173,7 +182,7 @@ export async function removeMemberAction(
 
   try {
     await removeMember({ workspaceId, actorId: user.id, memberId });
-    revalidatePath(ROUTES.workspace(workspaceId));
+    await revalidateWorkspaceMembers(workspaceId);
 
     return {
       status: "success",

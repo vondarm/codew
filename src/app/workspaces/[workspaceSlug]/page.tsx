@@ -6,7 +6,7 @@ import { MemberRole } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { listMembers } from "@/lib/services/member";
 import { findMemberByWorkspaceAndUserId } from "@/lib/prisma/member";
-import { findWorkspaceById } from "@/lib/prisma/workspace";
+import { findWorkspaceBySlug } from "@/lib/prisma/workspace";
 import { ROUTES } from "@/routes";
 
 import MembersClient from "./members-client";
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 type WorkspacePageParams = {
-  workspaceId: string;
+  workspaceSlug: string;
 };
 
 type PageProps = {
@@ -25,15 +25,15 @@ type PageProps = {
 };
 
 export default async function WorkspaceMembersPage({ params }: PageProps) {
-  const { workspaceId } = await params;
+  const { workspaceSlug } = await params;
 
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect(ROUTES.signin({ callbackUrl: ROUTES.workspace(workspaceId) }));
+    redirect(ROUTES.signin({ callbackUrl: ROUTES.workspace(workspaceSlug) }));
   }
 
-  const workspace = await findWorkspaceById(workspaceId);
+  const workspace = await findWorkspaceBySlug(workspaceSlug);
 
   if (!workspace) {
     notFound();

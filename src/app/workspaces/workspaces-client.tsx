@@ -511,7 +511,7 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
                               size="small"
                               variant="outlined"
                               component={Link}
-                              href={ROUTES.workspaceRooms(workspace.id)}
+                              href={ROUTES.workspaceRooms(workspace.slug)}
                             >
                               Комнаты
                             </Button>
@@ -519,7 +519,7 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
                               size="small"
                               variant="outlined"
                               component={Link}
-                              href={ROUTES.workspaceTemplates(workspace.id)}
+                              href={ROUTES.workspaceTemplates(workspace.slug)}
                             >
                               Шаблоны
                             </Button>
@@ -528,7 +528,7 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
                                 size="small"
                                 variant="outlined"
                                 component={Link}
-                                href={ROUTES.workspace(workspace.id)}
+                                href={ROUTES.workspace(workspace.slug)}
                               >
                                 Участники
                               </Button>

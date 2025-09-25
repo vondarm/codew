@@ -379,7 +379,7 @@ export default function MembersClient({ workspace, members, currentUser }: Membe
             </Button>
             <Button
               component={Link}
-              href={ROUTES.workspaceTemplates(workspace.id)}
+              href={ROUTES.workspaceTemplates(workspace.slug)}
               variant="outlined"
             >
               Шаблоны
