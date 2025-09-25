@@ -173,14 +173,33 @@ describe("RoomService", () => {
     expect(mockedRoomRepo.createRoomRecord).not.toHaveBeenCalled();
   });
 
-  it("appends suffix when slug already exists", async () => {
+  it("generates random slug and retries on collision", async () => {
+    const randomSpy = vi
+      .spyOn(Math, "random")
+      .mockReturnValueOnce(0.123456)
+      .mockReturnValueOnce(0.654321)
+      .mockReturnValue(0.654321);
+
     mockedRoomRepo.findRoomBySlug
-      .mockResolvedValueOnce({ ...baseRoom, workspace })
-      .mockResolvedValueOnce(null);
+      .mockImplementationOnce(async () => ({ ...baseRoom, id: "room-2" }))
+      .mockImplementationOnce(async () => null);
 
     const slug = await generateUniqueSlug("Интервью по JS");
 
-    expect(slug).toMatch(/^js-room-\d+$/);
+    expect(slug).toBe("room-nk000q");
+    expect(mockedRoomRepo.findRoomBySlug).toHaveBeenCalledTimes(2);
+
+    randomSpy.mockRestore();
+  });
+
+  it("appends suffix when custom slug already exists", async () => {
+    mockedRoomRepo.findRoomBySlug
+      .mockImplementationOnce(async () => ({ ...baseRoom, id: "room-2" }))
+      .mockImplementationOnce(async () => null);
+
+    const slug = await generateUniqueSlug("Интервью по JS", { slug: "custom" });
+
+    expect(slug).toBe("custom-2");
   });
 
   it("lists rooms for workspace", async () => {
