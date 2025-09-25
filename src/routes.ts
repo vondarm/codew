@@ -13,6 +13,6 @@ export const ROUTES = {
     return `/workspaces/${workspaceSlug}/templates`;
   },
   signin({ callbackUrl }: SignInRouteParams) {
-    return `/api/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+    return `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
   },
 } as const;
