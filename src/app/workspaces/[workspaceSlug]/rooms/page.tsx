@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { MemberRole } from "@prisma/client";
 
 import { getCurrentUser } from "@/lib/auth";
-import { findWorkspaceById } from "@/lib/prisma/workspace";
+import { findWorkspaceBySlug } from "@/lib/prisma/workspace";
 import { findMemberByWorkspaceAndUserId } from "@/lib/prisma/member";
 import { listRoomsForWorkspace } from "@/lib/services/room";
 import { ROUTES } from "@/routes";
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 type WorkspaceRoomsPageParams = {
-  workspaceId: string;
+  workspaceSlug: string;
 };
 
 type PageProps = {
@@ -25,15 +25,15 @@ type PageProps = {
 };
 
 export default async function WorkspaceRoomsPage({ params }: PageProps) {
-  const { workspaceId } = await params;
+  const { workspaceSlug } = await params;
 
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect(ROUTES.signin({ callbackUrl: ROUTES.workspaceRooms(workspaceId) }));
+    redirect(ROUTES.signin({ callbackUrl: ROUTES.workspaceRooms(workspaceSlug) }));
   }
 
-  const workspace = await findWorkspaceById(workspaceId);
+  const workspace = await findWorkspaceBySlug(workspaceSlug);
 
   if (!workspace) {
     notFound();
