@@ -19,9 +19,9 @@ import {
 import type { SerializedRoom } from "@/lib/services/room";
 import { ROUTES } from "@/routes";
 
-import RoomFormDialog from "@/app/workspaces/[workspaceId]/rooms/room-form-dialog";
-import RoomCloseDialog from "@/app/workspaces/[workspaceId]/rooms/room-close-dialog";
-import RoomSlugDialog from "@/app/workspaces/[workspaceId]/rooms/room-slug-dialog";
+import RoomFormDialog from "@/app/(app)/workspaces/[workspaceId]/rooms/room-form-dialog";
+import RoomCloseDialog from "@/app/(app)/workspaces/[workspaceId]/rooms/room-close-dialog";
+import RoomSlugDialog from "@/app/(app)/workspaces/[workspaceId]/rooms/room-slug-dialog";
 
 export type WorkspaceSummary = {
   id: string;
