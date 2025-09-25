@@ -1,6 +1,6 @@
 # Настройка аутентификации
 
-Эта страница описывает, как подготовить окружение для аутентификации через Google OAuth в проекте CodeW.
+Эта страница описывает, как подготовить окружение для аутентификации через Google, GitHub и Яндекс OAuth в проекте CodeW.
 
 ## Переменные окружения
 
@@ -13,10 +13,14 @@
 | `NEXTAUTH_URL`         | Базовый URL приложения. Для локальной разработки используйте `http://localhost:3000`.                            |
 | `GOOGLE_CLIENT_ID`     | Идентификатор OAuth-клиента Google.                                                                              |
 | `GOOGLE_CLIENT_SECRET` | Секрет OAuth-клиента Google.                                                                                     |
+| `GITHUB_CLIENT_ID`     | Идентификатор OAuth-приложения GitHub.                                                                           |
+| `GITHUB_CLIENT_SECRET` | Секрет OAuth-приложения GitHub.                                                                                  |
+| `YANDEX_CLIENT_ID`     | Идентификатор OAuth-приложения Яндекса.                                                                          |
+| `YANDEX_CLIENT_SECRET` | Пароль OAuth-приложения Яндекса.                                                                                 |
 
 > Совет: `NEXTAUTH_SECRET` можно сгенерировать командой `openssl rand -base64 32`.
 
-## Создание Google OAuth Credentials
+## Создание Google OAuth credentials
 
 1. Перейдите в [Google Cloud Console](https://console.cloud.google.com/).
 2. Создайте новый проект либо используйте существующий.
@@ -25,6 +29,25 @@
    - Добавьте авторизованный JavaScript origin: `http://localhost:3000`.
    - Добавьте авторизованный redirect URI: `http://localhost:3000/api/auth/callback/google`.
 4. Сохраните выданные `Client ID` и `Client Secret` и пропишите их в `.env`.
+
+## Создание GitHub OAuth credentials
+
+1. Перейдите в [настройки разработчика GitHub](https://github.com/settings/developers).
+2. В разделе **OAuth Apps** нажмите **New OAuth App**.
+3. Заполните форму:
+   - **Application name** — произвольное название.
+   - **Homepage URL** — `http://localhost:3000` для локальной разработки.
+   - **Authorization callback URL** — `http://localhost:3000/api/auth/callback/github`.
+4. После создания нажмите **Generate a new client secret**.
+5. Сохраните `Client ID` и сгенерированный `Client secret` и пропишите их в `.env`.
+
+## Создание Яндекс OAuth credentials
+
+1. Перейдите на [страницу регистрации приложения Яндекс OAuth](https://oauth.yandex.ru/client/new).
+2. Укажите произвольное название и выберите тип приложения **Веб-сервисы**.
+3. В блоке **Платформы** добавьте платформу «Веб-сервисы» и задайте URL сайта `http://localhost:3000`.
+4. В поле **Callback URL** (Redirect URI) укажите `http://localhost:3000/api/auth/callback/yandex`.
+5. Сохраните приложение и на странице его настроек создайте пароль. Пропишите `ID приложения` и `Пароль приложения` в `.env` как `YANDEX_CLIENT_ID` и `YANDEX_CLIENT_SECRET`.
 
 ## Генерация Prisma Client и синхронизация базы
 
@@ -53,7 +76,9 @@ import { login, logout } from "@/lib/auth-client";
 export function AuthButtons() {
   return (
     <div>
-      <button onClick={() => login()}>Войти через Google</button>
+      <button onClick={() => login("google")}>Войти через Google</button>
+      <button onClick={() => login("github")}>Войти через GitHub</button>
+      <button onClick={() => login("yandex")}>Войти через Яндекс</button>
       <button onClick={() => logout({ callbackUrl: "/" })}>Выйти</button>
     </div>
   );
@@ -74,6 +99,6 @@ export default async function Dashboard() {
 
 ## Smoke-checklist
 
-- Вход через тестовый Google-аккаунт перенаправляет пользователя обратно в приложение и создаёт запись в базе `User`.
+- Вход через любой из настроенных OAuth-провайдеров (Google, GitHub или Яндекс) перенаправляет пользователя обратно в приложение и создаёт запись в базе `User`.
 - `getCurrentUser` возвращает данные текущего пользователя в серверном компоненте/Server Action.
 - Функция `logout` завершает сессию и очищает куки.
