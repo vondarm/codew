@@ -19,6 +19,6 @@ export const ROUTES = {
     return `/rooms/${slug}`;
   },
   signin({ callbackUrl }: SignInRouteParams) {
-    return `/api/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+    return `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
   },
 } as const;
