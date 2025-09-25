@@ -374,6 +374,9 @@ export default function MembersClient({ workspace, members, currentUser }: Membe
             <Button component={Link} href={ROUTES.workspaces} variant="outlined">
               К рабочим областям
             </Button>
+            <Button component={Link} href={ROUTES.workspaceRooms(workspace.id)} variant="outlined">
+              Комнаты
+            </Button>
             <Button
               component={Link}
               href={ROUTES.workspaceTemplates(workspace.slug)}

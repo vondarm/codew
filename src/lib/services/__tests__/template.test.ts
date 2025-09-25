@@ -89,15 +89,13 @@ describe("TemplateService", () => {
 
     expect(result).toBe(templateRecord);
     expect(mockedTemplateRepo.createTemplate).toHaveBeenCalledWith({
-      data: {
-        name: "API helper",
-        description: "REST client",
-        hiddenDescription: "Обсудить сложности",
-        language: TemplateLanguage.TYPESCRIPT,
-        content: "export const handler = () => {};\n",
-        workspace: { connect: { id: workspace.id } },
-        createdBy: { connect: { id: adminMembership.userId } },
-      },
+      name: "API helper",
+      description: "REST client",
+      hiddenDescription: "Обсудить сложности",
+      language: TemplateLanguage.TYPESCRIPT,
+      content: "export const handler = () => {};\n",
+      workspace: { connect: { id: workspace.id } },
+      createdBy: { connect: { id: adminMembership.userId } },
     });
   });
 
@@ -149,11 +147,11 @@ describe("TemplateService", () => {
       content: "console.log('test');",
     });
 
-    expect(mockedTemplateRepo.createTemplate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(mockedTemplateRepo.createTemplate).toHaveBeenCalledWith(
+      expect.objectContaining({
         hiddenDescription: null,
       }),
-    });
+    );
   });
 
   it("prevents viewers from managing templates", async () => {

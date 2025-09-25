@@ -19,6 +19,7 @@ model User {
   memberships   Member[]
   invitedMembers Member[] @relation("MemberInvitedBy")
   templates     Template[]
+  createdRooms  Room[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -73,6 +74,7 @@ model Workspace {
   owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members   Member[]
   templates Template[]
+  rooms     Room[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -83,6 +85,12 @@ enum MemberRole {
   ADMIN
   EDITOR
   VIEWER
+}
+
+enum RoomStatus {
+  ACTIVE
+  CLOSED
+  ARCHIVED
 }
 
 model Member {
@@ -120,6 +128,29 @@ model Template {
   content      String
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@unique([workspaceId, name])
+}
+
+model Room {
+  id                  String      @id @default(cuid())
+  workspaceId         String
+  createdById         String
+  name                String
+  slug                String      @unique
+  status              RoomStatus  @default(ACTIVE)
+  allowAnonymousView  Boolean     @default(false)
+  allowAnonymousEdit  Boolean     @default(false)
+  allowAnonymousJoin  Boolean     @default(false)
+  code                String      @default("")
+  archivedAt          DateTime?
+  closedAt            DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
