@@ -152,6 +152,11 @@ export default function RoomsClient({
     setFeedback({ message, severity });
   };
 
+  const handleFormSuccess = (message: string) => {
+    handleFeedback(message, "success");
+    closeFormDialog();
+  };
+
   const handleCopyLink = async (room: SerializedRoom) => {
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -384,7 +389,7 @@ export default function RoomsClient({
         workspaceId={workspace.id}
         room={targetRoom}
         onClose={closeFormDialog}
-        onSuccess={handleFeedback}
+        onSuccess={handleFormSuccess}
       />
 
       <RoomCloseDialog

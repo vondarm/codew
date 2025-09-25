@@ -64,9 +64,8 @@ export default function RoomFormDialog({
       const message =
         state.message ?? (mode === "create" ? "Комната создана." : "Настройки сохранены.");
       onSuccess(message);
-      onClose();
     }
-  }, [mode, onClose, onSuccess, state.message, state.status]);
+  }, [mode, onSuccess, state.message, state.status]);
 
   const title = mode === "create" ? "Новая комната" : "Настройки комнаты";
   const submitLabel = mode === "create" ? "Создать" : "Сохранить";
@@ -149,7 +148,7 @@ export default function RoomFormDialog({
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose} disabled={isPending}>
+          <Button type="button" onClick={onClose} disabled={isPending}>
             Отмена
           </Button>
           <Button type="submit" variant="contained" disabled={isPending}>
