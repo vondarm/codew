@@ -1,6 +1,5 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
@@ -17,68 +16,67 @@ import {
 
 import type { SerializedRoom } from "@/lib/services/room";
 
-import { createRoomAction, updateRoomAction } from "./actions";
-import { roomActionIdleState } from "./room-action-state";
-
-export type RoomFormDialogMode = "create" | "edit";
+import { roomActionIdleState, RoomActionState } from "./room-action-state";
+import { useForm } from "@/shared/forms";
 
 type RoomFormDialogProps = {
   open: boolean;
-  mode: RoomFormDialogMode;
   workspaceId: string;
   room?: SerializedRoom | null;
   onClose: () => void;
-  onSuccess: (message: string) => void;
+  onSuccess: () => void;
+  formAction: (_prevState: RoomActionState, formData: FormData) => Promise<RoomActionState>;
+  formTitle: string;
+  submitLabel: string;
+};
+
+const INITIAL_ROOM: Partial<SerializedRoom> = {
+  name: "Новая комната",
+  code: "",
+  allowAnonymousView: false,
+  allowAnonymousJoin: false,
+  allowAnonymousEdit: false,
 };
 
 export default function RoomFormDialog({
   open,
-  mode,
   workspaceId,
   room,
   onClose,
   onSuccess,
+  formTitle,
+  submitLabel,
+  formAction,
 }: RoomFormDialogProps) {
-  const action = useMemo(() => (mode === "create" ? createRoomAction : updateRoomAction), [mode]);
-
-  const [state, formAction, isPending] = useActionState(action, roomActionIdleState);
-
-  const [name, setName] = useState(room?.name ?? "");
-  const [code, setCode] = useState(room?.code ?? "");
-  const [allowView, setAllowView] = useState(room?.allowAnonymousView ?? false);
-  const [allowEdit, setAllowEdit] = useState(room?.allowAnonymousEdit ?? false);
-  const [allowJoin, setAllowJoin] = useState(room?.allowAnonymousJoin ?? false);
-
-  useEffect(() => {
-    if (open) {
-      setName(room?.name ?? "");
-      setCode(room?.code ?? "");
-      setAllowView(room?.allowAnonymousView ?? false);
-      setAllowEdit(room?.allowAnonymousEdit ?? false);
-      setAllowJoin(room?.allowAnonymousJoin ?? false);
-    }
-  }, [open, room]);
-
-  useEffect(() => {
-    if (state.status === "success") {
-      const message =
-        state.message ?? (mode === "create" ? "Комната создана." : "Настройки сохранены.");
-      onSuccess(message);
-    }
-  }, [mode, onSuccess, state.message, state.status]);
-
-  const title = mode === "create" ? "Новая комната" : "Настройки комнаты";
-  const submitLabel = mode === "create" ? "Создать" : "Сохранить";
+  const { formValue, state, isPending, action, set } = useForm(
+    { ...room },
+    formAction,
+    roomActionIdleState,
+    onSuccess,
+    INITIAL_ROOM,
+  );
 
   return (
     <Dialog open={open} onClose={isPending ? undefined : onClose} fullWidth maxWidth="md">
-      <form action={formAction}>
+      <form action={action}>
         <input type="hidden" name="workspaceId" value={workspaceId} />
-        {mode === "edit" && room ? <input type="hidden" name="roomId" value={room.id} /> : null}
-        <input type="hidden" name="allowAnonymousView" value={allowView ? "true" : "false"} />
-        <input type="hidden" name="allowAnonymousEdit" value={allowEdit ? "true" : "false"} />
-        <input type="hidden" name="allowAnonymousJoin" value={allowJoin ? "true" : "false"} />
-        <DialogTitle>{title}</DialogTitle>
+        {room ? <input type="hidden" name="roomId" value={room.id} /> : null}
+        <input
+          type="hidden"
+          name="allowAnonymousView"
+          value={formValue.allowAnonymousView ? "true" : "false"}
+        />
+        <input
+          type="hidden"
+          name="allowAnonymousEdit"
+          value={formValue.allowAnonymousEdit ? "true" : "false"}
+        />
+        <input
+          type="hidden"
+          name="allowAnonymousJoin"
+          value={formValue.allowAnonymousJoin ? "true" : "false"}
+        />
+        <DialogTitle>{formTitle}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {state.status === "error" && state.message ? (
@@ -87,8 +85,8 @@ export default function RoomFormDialog({
             <TextField
               label="Название"
               name="name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
+              value={formValue.name}
+              onChange={(event) => set("name")(event.target.value)}
               disabled={isPending}
               fullWidth
               required
@@ -98,8 +96,8 @@ export default function RoomFormDialog({
             <TextField
               label="Описание или стартовый код"
               name="code"
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
+              value={formValue.code}
+              onChange={(event) => set("code")(event.target.value)}
               disabled={isPending}
               fullWidth
               multiline
@@ -115,8 +113,8 @@ export default function RoomFormDialog({
                 control={
                   <Switch
                     color="primary"
-                    checked={allowView}
-                    onChange={(event) => setAllowView(event.target.checked)}
+                    checked={formValue.allowAnonymousView}
+                    onChange={(event) => set("allowAnonymousView")(event.target.checked)}
                     disabled={isPending}
                   />
                 }
@@ -126,9 +124,9 @@ export default function RoomFormDialog({
                 control={
                   <Switch
                     color="primary"
-                    checked={allowEdit}
-                    onChange={(event) => setAllowEdit(event.target.checked)}
-                    disabled={isPending || !allowView}
+                    checked={formValue.allowAnonymousEdit}
+                    onChange={(event) => set("allowAnonymousEdit")(event.target.checked)}
+                    disabled={isPending || !formValue.allowAnonymousView}
                   />
                 }
                 label="Разрешить анонимное редактирование"
@@ -137,8 +135,8 @@ export default function RoomFormDialog({
                 control={
                   <Switch
                     color="primary"
-                    checked={allowJoin}
-                    onChange={(event) => setAllowJoin(event.target.checked)}
+                    checked={formValue.allowAnonymousJoin}
+                    onChange={(event) => set("allowAnonymousJoin")(event.target.checked)}
                     disabled={isPending}
                   />
                 }

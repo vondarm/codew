@@ -22,6 +22,7 @@ import { ROUTES } from "@/routes";
 import RoomFormDialog from "@/app/workspaces/[workspaceSlug]/rooms/room-form-dialog";
 import RoomCloseDialog from "@/app/workspaces/[workspaceSlug]/rooms/room-close-dialog";
 import RoomSlugDialog from "@/app/workspaces/[workspaceSlug]/rooms/room-slug-dialog";
+import { updateRoomAction } from "@/app/workspaces/[workspaceSlug]/rooms/actions";
 
 export type WorkspaceSummary = {
   id: string;
@@ -283,11 +284,16 @@ export default function RoomSettingsClient({
 
       <RoomFormDialog
         open={isEditOpen}
-        mode="edit"
         workspaceId={workspace.id}
         room={room}
         onClose={closeEditDialog}
-        onSuccess={handleFeedback}
+        onSuccess={() => {
+          handleFeedback("Комната успешно обновлена");
+          closeEditDialog();
+        }}
+        formTitle={"Обновить комнату"}
+        formAction={updateRoomAction}
+        submitLabel={"Сохранить"}
       />
 
       <RoomCloseDialog

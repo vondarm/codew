@@ -23,9 +23,10 @@ import {
 import type { SerializedRoom } from "@/lib/services/room";
 import { ROUTES } from "@/routes";
 
-import RoomFormDialog, { type RoomFormDialogMode } from "./room-form-dialog";
+import RoomFormDialog from "./room-form-dialog";
 import RoomCloseDialog from "./room-close-dialog";
 import RoomSlugDialog from "./room-slug-dialog";
+import { createRoomAction, updateRoomAction } from "@/app/workspaces/[workspaceSlug]/rooms/actions";
 
 type WorkspaceSummary = {
   id: string;
@@ -81,9 +82,8 @@ export default function RoomsClient({
   canManage,
   currentUser,
 }: RoomsClientProps) {
-  const [formMode, setFormMode] = useState<RoomFormDialogMode>("create");
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [targetRoom, setTargetRoom] = useState<SerializedRoom | null>(null);
+  const [editRoomTarget, setEditRoomTarget] = useState<SerializedRoom | null>(null);
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [closeRoomTarget, setCloseRoomTarget] = useState<SerializedRoom | null>(null);
   const [slugRoomTarget, setSlugRoomTarget] = useState<SerializedRoom | null>(null);
 
@@ -94,19 +94,19 @@ export default function RoomsClient({
   }, [rooms]);
 
   const openCreateDialog = () => {
-    setFormMode("create");
-    setTargetRoom(null);
-    setIsFormOpen(true);
+    setIsCreatingRoom(true);
+    setEditRoomTarget(null);
+  };
+  const closeCreateDialog = () => {
+    setIsCreatingRoom(false);
   };
 
   const openEditDialog = (room: SerializedRoom) => {
-    setFormMode("edit");
-    setTargetRoom(room);
-    setIsFormOpen(true);
+    setEditRoomTarget(room);
   };
 
-  const closeFormDialog = () => {
-    setIsFormOpen(false);
+  const closeEditDialog = () => {
+    setEditRoomTarget(null);
   };
 
   const openCloseDialog = (room: SerializedRoom) => {
@@ -131,7 +131,8 @@ export default function RoomsClient({
 
   const handleFormSuccess = (message: string) => {
     handleFeedback(message, "success");
-    closeFormDialog();
+    closeEditDialog();
+    closeCreateDialog();
   };
 
   const handleCopyLink = async (room: SerializedRoom) => {
@@ -358,12 +359,26 @@ export default function RoomsClient({
       </Stack>
 
       <RoomFormDialog
-        open={isFormOpen}
-        mode={formMode}
+        open={isCreatingRoom}
         workspaceId={workspace.id}
-        room={targetRoom}
-        onClose={closeFormDialog}
-        onSuccess={handleFormSuccess}
+        room={null}
+        onClose={closeCreateDialog}
+        onSuccess={() => handleFormSuccess("Комната успешно создана")}
+        formAction={createRoomAction}
+        formTitle={"Создать комнату"}
+        submitLabel={"Создать"}
+      />
+
+      <RoomFormDialog
+        key={`editRoom-${editRoomTarget?.id}`}
+        open={Boolean(editRoomTarget)}
+        workspaceId={workspace.id}
+        room={editRoomTarget}
+        onClose={closeEditDialog}
+        onSuccess={() => handleFormSuccess("Комната успешно изменена")}
+        formAction={updateRoomAction}
+        formTitle={"Обновить комнату"}
+        submitLabel={"Сохранить"}
       />
 
       <RoomCloseDialog
