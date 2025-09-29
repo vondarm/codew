@@ -98,10 +98,18 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (token) {
-        session.user.id = token.id as string;
-        session.user.name = token.name;
-        session.user.email = token.email;
-        session.user.image = token.image;
+        if (typeof token.id === "string") {
+          session.user.id = token.id;
+        }
+        if (typeof token.name === "string") {
+          session.user.name = token.name;
+        }
+        if (typeof token.email === "string") {
+          session.user.email = token.email;
+        }
+        if (typeof token.image === "string" || token.image === null) {
+          session.user.image = token.image;
+        }
       }
 
       return session;
