@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MemberRole, RoomStatus } from "@prisma/client";
 import {
-  Alert,
   Box,
   Button,
   Card,
@@ -41,11 +40,6 @@ type CurrentUserSummary = {
   image: string | null;
   role: MemberRole;
 };
-
-type FeedbackState = {
-  message: string;
-  severity: "success" | "error";
-} | null;
 
 type RoomsClientProps = {
   workspace: WorkspaceSummary;
@@ -87,31 +81,17 @@ export default function RoomsClient({
   canManage,
   currentUser,
 }: RoomsClientProps) {
-  const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [formMode, setFormMode] = useState<RoomFormDialogMode>("create");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [targetRoom, setTargetRoom] = useState<SerializedRoom | null>(null);
   const [closeRoomTarget, setCloseRoomTarget] = useState<SerializedRoom | null>(null);
   const [slugRoomTarget, setSlugRoomTarget] = useState<SerializedRoom | null>(null);
-  const [dialogKey, setDialogKey] = useState(0);
-  const [closeDialogKey, setCloseDialogKey] = useState(0);
-  const [slugDialogKey, setSlugDialogKey] = useState(0);
 
   const sortedRooms = useMemo(() => {
     return [...rooms].sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
   }, [rooms]);
-
-  useEffect(() => {
-    if (!feedback) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => setFeedback(null), 6000);
-
-    return () => window.clearTimeout(timer);
-  }, [feedback]);
 
   const openCreateDialog = () => {
     setFormMode("create");
@@ -127,7 +107,6 @@ export default function RoomsClient({
 
   const closeFormDialog = () => {
     setIsFormOpen(false);
-    setDialogKey((value) => value + 1);
   };
 
   const openCloseDialog = (room: SerializedRoom) => {
@@ -136,7 +115,6 @@ export default function RoomsClient({
 
   const closeCloseDialog = () => {
     setCloseRoomTarget(null);
-    setCloseDialogKey((value) => value + 1);
   };
 
   const openSlugDialog = (room: SerializedRoom) => {
@@ -145,11 +123,10 @@ export default function RoomsClient({
 
   const closeSlugDialog = () => {
     setSlugRoomTarget(null);
-    setSlugDialogKey((value) => value + 1);
   };
 
   const handleFeedback = (message: string, severity: "success" | "error" = "success") => {
-    setFeedback({ message, severity });
+    console.info("FEEDBACK", severity, message);
   };
 
   const handleFormSuccess = (message: string) => {
@@ -214,8 +191,6 @@ export default function RoomsClient({
             </Button>
           </Stack>
         </Stack>
-
-        {feedback ? <Alert severity={feedback.severity}>{feedback.message}</Alert> : null}
 
         <Card variant="outlined">
           <CardContent>
@@ -383,7 +358,6 @@ export default function RoomsClient({
       </Stack>
 
       <RoomFormDialog
-        key={dialogKey}
         open={isFormOpen}
         mode={formMode}
         workspaceId={workspace.id}
@@ -393,7 +367,6 @@ export default function RoomsClient({
       />
 
       <RoomCloseDialog
-        key={closeDialogKey}
         open={Boolean(closeRoomTarget)}
         workspaceId={workspace.id}
         room={closeRoomTarget}
@@ -402,7 +375,6 @@ export default function RoomsClient({
       />
 
       <RoomSlugDialog
-        key={slugDialogKey}
         open={Boolean(slugRoomTarget)}
         workspaceId={workspace.id}
         room={slugRoomTarget}

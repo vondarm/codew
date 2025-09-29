@@ -76,10 +76,7 @@ export default function RoomSettingsClient({
 }: RoomSettingsClientProps) {
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editDialogKey, setEditDialogKey] = useState(0);
   const [closeRoomTarget, setCloseRoomTarget] = useState<SerializedRoom | null>(null);
-  const [closeDialogKey, setCloseDialogKey] = useState(0);
-  const [slugDialogKey, setSlugDialogKey] = useState(0);
   const [slugRoomTarget, setSlugRoomTarget] = useState<SerializedRoom | null>(null);
 
   useEffect(() => {
@@ -140,7 +137,6 @@ export default function RoomSettingsClient({
 
   const closeEditDialog = () => {
     setIsEditOpen(false);
-    setEditDialogKey((value) => value + 1);
   };
 
   const openCloseDialog = () => {
@@ -149,7 +145,6 @@ export default function RoomSettingsClient({
 
   const closeCloseDialog = () => {
     setCloseRoomTarget(null);
-    setCloseDialogKey((value) => value + 1);
   };
 
   const openSlugDialog = () => {
@@ -158,7 +153,6 @@ export default function RoomSettingsClient({
 
   const closeSlugDialog = () => {
     setSlugRoomTarget(null);
-    setSlugDialogKey((value) => value + 1);
   };
 
   return (
@@ -288,7 +282,6 @@ export default function RoomSettingsClient({
       </Stack>
 
       <RoomFormDialog
-        key={editDialogKey}
         open={isEditOpen}
         mode="edit"
         workspaceId={workspace.id}
@@ -298,7 +291,6 @@ export default function RoomSettingsClient({
       />
 
       <RoomCloseDialog
-        key={closeDialogKey}
         open={Boolean(closeRoomTarget)}
         workspaceId={workspace.id}
         room={closeRoomTarget}
@@ -307,7 +299,6 @@ export default function RoomSettingsClient({
       />
 
       <RoomSlugDialog
-        key={slugDialogKey}
         open={Boolean(slugRoomTarget)}
         workspaceId={workspace.id}
         room={slugRoomTarget}
