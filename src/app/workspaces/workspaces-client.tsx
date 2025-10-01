@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useActionState } from "react";
+import { ChangeEvent, startTransition, useActionState } from "react";
 import { useMemo, useState, useTransition } from "react";
 import type { MemberRole } from "@prisma/client";
 
@@ -327,7 +327,10 @@ function DeleteWorkspaceDialog({
 }: DeleteWorkspaceDialogProps) {
   const [, deleteAction, isPending] = useActionState(
     withHandlers(deleteWorkspaceAction)({
-      onSuccess: ({ message }) => onSuccess(message || ""),
+      onSuccess: ({ message }) => {
+        onSuccess(message || "");
+        onClose();
+      },
       onError: ({ message }) => onSuccess(message || ""),
     }),
     idleState,
@@ -336,6 +339,8 @@ function DeleteWorkspaceDialog({
   if (!workspace) {
     return null;
   }
+
+  const deleteWorkspace = () => startTransition(() => deleteAction(workspace.id));
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -353,12 +358,7 @@ function DeleteWorkspaceDialog({
         <Button onClick={onClose} disabled={isPending}>
           Отмена
         </Button>
-        <Button
-          onClick={() => deleteAction(workspace.id)}
-          color="error"
-          variant="contained"
-          disabled={isPending}
-        >
+        <Button onClick={deleteWorkspace} color="error" variant="contained" disabled={isPending}>
           {isPending ? <CircularProgress size={20} /> : "Удалить"}
         </Button>
       </DialogActions>
@@ -374,7 +374,7 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
   const [isLogoutPending, startLogout] = useTransition();
 
   const sortedWorkspaces = useMemo(
-    () => [...workspaces].sort((a, b) => a.name.localeCompare(b.name, "ru")),
+    () => workspaces.toSorted((a, b) => a.name.localeCompare(b.name, "ru")),
     [workspaces],
   );
 
