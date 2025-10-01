@@ -24,6 +24,12 @@ import RoomFormDialog from "@/app/workspaces/[workspaceSlug]/rooms/room-form-dia
 import RoomCloseDialog from "@/app/workspaces/[workspaceSlug]/rooms/room-close-dialog";
 import RoomSlugDialog from "@/app/workspaces/[workspaceSlug]/rooms/room-slug-dialog";
 import { updateRoomAction } from "@/app/workspaces/[workspaceSlug]/rooms/actions";
+import {
+  copyRoomLink,
+  formatRoomDate,
+  ROOM_STATUS_COLORS,
+  ROOM_STATUS_LABELS,
+} from "@/app/workspaces/[workspaceSlug]/rooms/room-utils";
 
 export type WorkspaceSummary = {
   id: string;
@@ -38,33 +44,6 @@ type RoomSettingsClientProps = {
   viewerRole: MemberRole | null;
 };
 
-const STATUS_LABELS: Record<RoomStatus, string> = {
-  ACTIVE: "Активна",
-  CLOSED: "Закрыта",
-  ARCHIVED: "В архиве",
-};
-
-const STATUS_COLOR: Record<RoomStatus, "default" | "success" | "warning"> = {
-  ACTIVE: "success",
-  CLOSED: "default",
-  ARCHIVED: "warning",
-};
-
-function formatDate(value: string | null): string {
-  if (!value) {
-    return "—";
-  }
-
-  try {
-    return new Intl.DateTimeFormat("ru-RU", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
-}
-
 export default function RoomSettingsClient({
   room,
   workspace,
@@ -76,8 +55,8 @@ export default function RoomSettingsClient({
   const [closeRoomTarget, setCloseRoomTarget] = useState<SerializedRoom | null>(null);
   const [slugRoomTarget, setSlugRoomTarget] = useState<SerializedRoom | null>(null);
 
-  const statusLabel = STATUS_LABELS[room.status];
-  const statusColor = STATUS_COLOR[room.status];
+  const statusLabel = ROOM_STATUS_LABELS[room.status];
+  const statusColor = ROOM_STATUS_COLORS[room.status];
 
   const anonChips = useMemo(() => {
     return [
@@ -96,9 +75,7 @@ export default function RoomSettingsClient({
 
   const handleCopyLink = async () => {
     try {
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const url = `${origin}${ROUTES.room(room.slug)}`;
-      await navigator.clipboard.writeText(url);
+      await copyRoomLink(room.slug);
       handleFeedback("Ссылка скопирована.");
     } catch (error) {
       console.error(error);
@@ -166,7 +143,7 @@ export default function RoomSettingsClient({
                 variant={statusColor === "default" ? "outlined" : "filled"}
               />
               <Chip
-                label={`Обновлено ${formatDate(room.updatedAt)}`}
+                label={`Обновлено ${formatRoomDate(room.updatedAt)}`}
                 variant="outlined"
                 size="small"
               />
@@ -221,10 +198,10 @@ export default function RoomSettingsClient({
                 ))}
               </Stack>
               <Typography variant="body2" color="text.secondary">
-                Создана: {formatDate(room.createdAt)}
+                Создана: {formatRoomDate(room.createdAt)}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Закрыта: {formatDate(room.closedAt)}
+                Закрыта: {formatRoomDate(room.closedAt)}
               </Typography>
               {canManage ? (
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
