@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task-spec id="5.1" name="Участники комнаты и присутствие (RoomMemberService)">
+  <overview>
+    <objective>Спроектировать и описать архитектуру системы управления участниками комнаты, обеспечивающую подключение и отключение зарегистрированных и анонимных пользователей, отображение списка присутствующих в UI и доставку событий через WebSocket с возможностью дальнейшего расширения (управление настройками, запуск кода и т.д.).</objective>
+    <in-scope>
+      <item>Расширение доменной модели Rooms для хранения статических участников (членство workspace) и динамического присутствия в конкретной комнате.</item>
+      <item>Поддержка подключения зарегистрированных пользователей (членов workspace) и анонимных посетителей при включённом флаге `allowAnonymousJoin`.</item>
+      <item>Простая регистрация анонимного пользователя (ввод отображаемого имени) и привязка его к комнате/сессии с возможностью повторного входа в рамках жизненного цикла комнаты.</item>
+      <item>События `join`/`leave`/`presence-sync` через WebSocket с подтверждением от сервера и трансляцией списка участников всем подключённым клиентам.</item>
+      <item>Архитектурные заделы в WebSocket-шлюзе для будущих команд (изменение настроек комнаты, синхронизация кода, запуск тестов).</item>
+      <item>Обновления пользовательских интерфейсов страницы комнаты: отображение списка участников, индикация статуса (онлайн/офлайн), обработка модального окна ввода имени для анонимов.</item>
+      <item>Сервисы бэкенда, отвечающие за валидацию прав, создание анонимных профилей, управление сессиями и публикацию событий.</item>
+      <item>Изменения в базе данных для хранения текущего статуса подключений, анонимных профилей и истории присутствия.</item>
+    </in-scope>
+    <out-of-scope>
+      <item>Реализация совместного редактирования кода, чата или синхронизации редактора (отдельные задачи CollaborationService).</item>
+      <item>Долговременная аналитика/аудит подключений, экспорт логов и интеграции с внешними системами нотификаций.</item>
+      <item>Фактическое выполнение кода или управление тестовыми прогоном (ExecutionService).</item>
+    </out-of-scope>
+  </overview>
+  <architecture>
+    <data-model>
+      <item>Добавить в `schema.prisma` модели:
+        <subitem>`RoomParticipant` — статичная сущность для отображения постоянных участников комнаты (поля: `id`, `roomId`, `userId?`, `anonymousProfileId?`, `role`, `source`, timestamps) с внешними ключами к `Room`, `Member`/`User`, `RoomAnonymousProfile` и уникальными ограничениями на пару (`roomId`, `userId` | `anonymousProfileId`).</subitem>
+        <subitem>`RoomAnonymousProfile` — хранит анонимное имя и токен повторного входа (`id`, `roomId`, `displayName`, `slugToken`, `createdAt`, `lastUsedAt`). Токен используется для восстановления сессии в пределах одной комнаты.</subitem>
+        <subitem>`RoomSession` — динамическая сессия подключения к комнате (`id`, `roomId`, `participantId`, `connectionId`, `connectedAt`, `disconnectedAt`, `lastPingAt`, `clientInfo`). Индекс по `connectionId` и `participantId` для отслеживания активных соединений.</subitem>
+        <subitem>Расширить `Room` полями конфигурации присутствия: `maxParticipants`, `requiresMemberAccount` (перекрывает `allowAnonymousJoin`), `anonymousApprovalMode` (enum: `AUTO`, `MANUAL`).</subitem>
+      </item>
+    </data-model>
+    <services>
+      <item>`RoomMemberService` — API для получения списка участников, подключения/отключения и синхронизации присутствия. Отвечает за валидацию прав доступа, поиск/создание анонимных профилей, создание `RoomSession`, обновление статуса.</item>
+      <item>`RoomPresenceGateway` — WebSocket-шлюз/route handler (`app/api/rooms/[roomId]/ws`), обрабатывающий события клиентов (`join`, `leave`, `heartbeat`, `rename-anonymous`) и рассылающий обновления (`presence-update`, `participant-joined`, `participant-left`). Имеет расширяемый протокол с полем `type` и `payload`, резервируя пространство для будущих сообщений (`room-settings:update`, `code:execute`).</item>
+      <item>`AnonymousRegistrationService` — вспомогательный модуль, который проверяет настройки комнаты, создаёт или актуализирует `RoomAnonymousProfile`, связывает токен cookie/LocalStorage с `slugToken`.</item>
+      <item>`PresenceBroadcaster` — слой публикации событий (в памяти или через Redis Pub/Sub) для масштабирования WebSocket соединений между несколькими инстансами.</item>
+    </services>
+    <ui>
+      <item>Компонент `RoomParticipantList` (клиентский) — отображает участников, сортирует по статусу, показывает роли и индикацию анонимов. Слушает WebSocket обновления.</item>
+      <item>Модальное окно `AnonymousJoinDialog` — открывается при попытке входа анонимом, содержит поле имени и вызывает Server Action `registerAnonymousParticipant`.</item>
+      <item>Хук/контекст `useRoomPresence` — управляет подключением к WebSocket, хранит состояние участников, обновляет UI и предоставляет методы `joinRoom`, `leaveRoom`, `renameAnonymous`.</item>
+      <item>Server Action/Route Handler `app/rooms/[roomSlug]/join` — создаёт `RoomSession` для зарегистрированного пользователя, выполняет проверки конфигурации и возвращает WebSocket endpoint + токен.</item>
+    </ui>
+    <security>
+      <item>Использовать JWT/подписанный токен для авторизации WebSocket (в составе query/headers), содержащий `roomId`, `participantId`, `exp` и тип пользователя (member/anonymous).</item>
+      <item>Ограничить анонимное подключение настройками `allowAnonymousJoin`, `requiresMemberAccount`, `anonymousApprovalMode`.</item>
+      <item>Защитить от подмены имени: изменение `displayName` только через сервис с проверкой токена и логированием.</item>
+    </security>
+    <extensibility>
+      <item>Протокол WebSocket имеет поле `capabilities`, описывающее поддерживаемые события клиента; сервер возвращает `availableCommands` в приветственном сообщении. Новые типы сообщений могут быть добавлены без пересборки текущих клиентов.</item>
+      <item>`RoomPresenceGateway` маршрутизирует входящие события в слой команд, где каждая команда реализует интерфейс (`execute(context, payload)`), что упрощает добавление новых возможностей (запуск кода, обновление настроек).</item>
+    </extensibility>
+  </architecture>
+  <deliverables>
+    <item>Обновлённый `schema.prisma` с моделями `RoomParticipant`, `RoomAnonymousProfile`, `RoomSession` и дополнительными полями конфигурации комнаты.</item>
+    <item>Prisma-миграция, создающая таблицы и индексы, а также заполняющая `RoomParticipant` для уже существующих членов комнаты (опционально через владельцев workspace).</item>
+    <item>Сервисные модули `src/lib/services/roomMember.ts`, `src/lib/services/anonymousRegistration.ts`, `src/lib/websocket/roomPresenceGateway.ts`.</item>
+    <item>Server Actions/route handlers для регистрации и выдачи токена подключения (`join`, `leave`, `register-anonymous`).</item>
+    <item>UI-компоненты `RoomParticipantList`, `AnonymousJoinDialog`, контекст `useRoomPresence` и интеграция на странице комнаты.</item>
+    <item>Документация (`docs/rooms-presence.md`) с описанием протокола WebSocket, схемы данных и пользовательских сценариев.</item>
+  </deliverables>
+  <implementation-plan>
+    <step index="1">Проанализировать текущую модель `Room` и членства workspace, определить связи и миграции для `RoomParticipant`/`RoomSession`.</step>
+    <step index="2">Обновить `schema.prisma`, выполнить миграцию и сгенерировать Prisma клиент.</step>
+    <step index="3">Реализовать сервисы создания/получения участников и анонимных профилей, покрыть основные кейсы юнит-тестами.</step>
+    <step index="4">Спроектировать WebSocket протокол: структуры сообщений, авторизационные токены, обработчики команд.</step>
+    <step index="5">Реализовать WebSocket gateway и подключить его к сервисам (создание сессии, heartbeat, оповещения).</step>
+    <step index="6">Обновить страницу комнаты: интегрировать контекст присутствия, список участников и модальное окно регистрации анонимов.</step>
+    <step index="7">Добавить ручные и автоматизированные проверки (линт, тесты), обновить документацию.</step>
+  </implementation-plan>
+  <testing>
+    <strategy>Покрыть юнит-тестами `RoomMemberService` (успешный join/leave, отказ при закрытой комнате, повторное подключение).</strategy>
+    <strategy>Интеграционные тесты WebSocket на уровне gateway (симуляция подключения, проверка рассылки `presence-update`).</strategy>
+    <strategy>Smoke-тест UI: вход зарегистрированного пользователя, вход анонимного с именем, корректное обновление списка участников при отключении.</strategy>
+    <strategy>Запуск стандартных команд `yarn lint`, `yarn test`, `yarn build` для регрессии.</strategy>
+  </testing>
+  <documentation>
+    <item>Обновление README/`docs` с разделом «Присутствие в комнате», описанием настроек и протокола WebSocket.</item>
+    <item>Диаграмма последовательностей (PlantUML/mermaid) для потоков join/leave анонимных и зарегистрированных пользователей.</item>
+    <item>Чек-лист QA для проверки ограничений анонимов, лимитов участников и корректной работы heartbeat.</item>
+  </documentation>
+  <risks>
+    <risk>Множественные подключения одного пользователя могут приводить к несогласованному состоянию — требуется идемпотентность `join` и периодические heartbeat/cleanup.</risk>
+    <risk>Анонимные профили должны корректно удаляться/привязываться, иначе возможно утечка данных и занятые displayName.</risk>
+    <risk>WebSocket масштабирование при нескольких инстансах сервера требует Pub/Sub — необходимо предусмотреть интерфейс и конфигурацию.</risk>
+    <risk>Смена настроек комнаты (отключение анонимов) при активных подключениях должна корректно завершать существующие сессии.</risk>
+  </risks>
+  <acceptance-criteria>
+    <criterion>Пользователь-член workspace может подключиться к комнате, получить токен WebSocket и увидеть себя в списке участников.</criterion>
+    <criterion>Анонимный пользователь при разрешённых настройках вводит имя, получает анонимный профиль и отображается в списке с пометкой «гость».</criterion>
+    <criterion>События WebSocket (`participant-joined`, `participant-left`, `presence-update`) доставляются всем клиентам и корректно обновляют UI.</criterion>
+    <criterion>Протокол WebSocket документирован и расширяем: существуют описанные типы будущих команд без их реализации.</criterion>
+    <criterion>Тесты и линт проходят, документация обновлена, миграции выполняются.</criterion>
+  </acceptance-criteria>
+</task-spec>
