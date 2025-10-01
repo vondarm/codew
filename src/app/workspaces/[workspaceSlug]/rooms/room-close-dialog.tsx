@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import {
   Alert,
   Button,
@@ -44,16 +43,15 @@ export default function RoomCloseDialog({
     {},
   );
 
-  useEffect(() => {
-    if (!open) {
-      reset();
-    }
-  }, [open, reset]);
+  const cancel = () => {
+    reset();
+    onClose();
+  };
 
   const roomName = room?.name ?? "";
 
   return (
-    <Dialog open={open} onClose={isPending ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={cancel} maxWidth="sm" fullWidth>
       <form action={action}>
         <input type="hidden" name="workspaceId" value={workspaceId} />
         <input type="hidden" name="roomId" value={room?.id ?? ""} />
@@ -71,7 +69,7 @@ export default function RoomCloseDialog({
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose} disabled={isPending}>
+          <Button onClick={cancel} disabled={isPending}>
             Отмена
           </Button>
           <Button type="submit" color="error" variant="contained" disabled={isPending || !room}>

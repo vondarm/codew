@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import type { TemplateLanguage } from "@prisma/client";
 import {
   Alert,
@@ -18,7 +18,7 @@ import {
 import type { SerializedTemplate } from "@/lib/services/template";
 
 import { createTemplateAction, updateTemplateAction } from "./actions";
-import { templateActionIdleState, type TemplateActionState } from "./template-action-state";
+import { templateActionIdleState } from "./template-action-state";
 import { useForm } from "@/shared/forms";
 
 export type TemplateFormMode = "create" | "edit";
@@ -36,7 +36,6 @@ type TemplateFormProps = {
   template?: SerializedTemplate | null;
   onCancel?: () => void;
   onSuccess: (message: string) => void;
-  onPendingChange?: (pending: boolean) => void;
   submitLabel?: string;
   cancelLabel?: string;
   children: (props: TemplateFormRenderProps) => ReactNode;
@@ -65,7 +64,6 @@ export default function TemplateForm({
   template,
   onCancel,
   onSuccess,
-  onPendingChange,
   submitLabel,
   cancelLabel,
   children,
@@ -82,8 +80,8 @@ export default function TemplateForm({
     state,
     isPending,
     reset,
-  } = useForm<TemplateFormValue, TemplateActionState>(
-    template ?? null,
+  } = useForm(
+    template,
     action,
     templateActionIdleState,
     () => {
@@ -93,21 +91,10 @@ export default function TemplateForm({
     BASE_TEMPLATE,
   );
 
-  const handleFormAction = useCallback(
-    async (formData: FormData) => {
-      onPendingChange?.(true);
-      try {
-        await formAction(formData);
-      } finally {
-        onPendingChange?.(false);
-      }
-    },
-    [formAction, onPendingChange],
-  );
-
-  useEffect(() => {
+  const cancel = () => {
     reset();
-  }, [reset, template?.id]);
+    onCancel?.();
+  };
 
   const resolvedSubmitLabel = submitLabel ?? (mode === "create" ? "Создать" : "Сохранить");
   const resolvedCancelLabel = cancelLabel ?? "Отмена";
@@ -201,8 +188,8 @@ export default function TemplateForm({
       justifyContent="flex-end"
       sx={{ pt: 2 }}
     >
-      {onCancel ? (
-        <Button type="button" onClick={onCancel} disabled={isPending}>
+      {cancel ? (
+        <Button type="button" onClick={cancel} disabled={isPending}>
           {resolvedCancelLabel}
         </Button>
       ) : null}
@@ -213,7 +200,7 @@ export default function TemplateForm({
   );
 
   return (
-    <form action={handleFormAction} style={{ height: "100%" }}>
+    <form action={formAction} style={{ height: "100%" }}>
       <input type="hidden" name="workspaceId" value={workspaceId} />
       {mode === "edit" && template ? (
         <input type="hidden" name="templateId" value={template.id} />

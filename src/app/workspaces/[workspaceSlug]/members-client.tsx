@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { MemberRole } from "@prisma/client";
 import Link from "next/link";
 import {
@@ -33,16 +33,11 @@ import {
   Typography,
 } from "@mui/material";
 
-import {
-  inviteMemberAction,
-  changeMemberRoleAction,
-  removeMemberAction,
-  memberActionIdleState,
-  type MemberActionState,
-} from "./members-actions";
+import { inviteMemberAction, changeMemberRoleAction, removeMemberAction } from "./members-actions";
 import { ROUTES } from "@/routes";
 import { useNotification } from "@/app/notification-provider";
 import { useForm } from "@/shared/forms";
+import { memberActionIdleState, MembersActionState } from "./members-action-state";
 
 const ROLE_LABELS: Record<MemberRole, string> = {
   ADMIN: "Администратор",
@@ -106,7 +101,7 @@ type InviteMemberFormValue = {
 
 const INITIAL_INVITE_FORM: InviteMemberFormValue = {
   email: "",
-  role: "EDITOR",
+  role: "VIEWER",
 };
 
 function InviteMemberForm({
@@ -116,16 +111,11 @@ function InviteMemberForm({
   workspaceId: string;
   onSuccess: (message: string) => void;
 }) {
-  const { formValue, set, action, state, isPending } = useForm<
-    InviteMemberFormValue,
-    MemberActionState
-  >(
+  const { formValue, set, action, state, isPending } = useForm(
     null,
     inviteMemberAction,
     memberActionIdleState,
-    () => {
-      onSuccess("Пользователь добавлен в рабочую область.");
-    },
+    () => onSuccess("Пользователь добавлен в рабочую область."),
     INITIAL_INVITE_FORM,
   );
 
@@ -200,13 +190,8 @@ function ChangeRoleDialog({
   workspaceId,
   member,
 }: ChangeRoleDialogProps) {
-  const currentRole: ChangeRoleFormValue | null = member ? { role: member.role } : null;
-
-  const { formValue, set, action, state, isPending, reset } = useForm<
-    ChangeRoleFormValue,
-    MemberActionState
-  >(
-    currentRole,
+  const { formValue, set, action, state, isPending, reset } = useForm(
+    member ? { role: member.role } : null,
     changeMemberRoleAction,
     memberActionIdleState,
     () => {
@@ -216,16 +201,17 @@ function ChangeRoleDialog({
     INITIAL_CHANGE_ROLE_FORM,
   );
 
-  useEffect(() => {
+  const cancel = () => {
     reset();
-  }, [member?.id, open, reset]);
+    onClose();
+  };
 
   if (!member) {
     return null;
   }
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={cancel} fullWidth maxWidth="sm">
       <form action={action}>
         <input type="hidden" name="workspaceId" value={workspaceId} />
         <input type="hidden" name="memberId" value={member.id} />
@@ -252,7 +238,7 @@ function ChangeRoleDialog({
                 label="Роль"
                 name="role"
                 value={formValue.role}
-                onChange={(event) => set("role")(event.target.value as MemberRole)}
+                onChange={(event) => set("role")(event.target.value)}
               >
                 {ROLE_OPTIONS.map((option) => (
                   <MenuItem key={option} value={option}>
@@ -268,7 +254,7 @@ function ChangeRoleDialog({
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={onClose} disabled={isPending}>
+          <Button onClick={cancel} disabled={isPending}>
             Отмена
           </Button>
           <Button type="submit" variant="contained" disabled={isPending}>
@@ -311,7 +297,7 @@ function RemoveMemberDialog({
 
   const { action, state, isPending, reset, formValue } = useForm<
     RemoveMemberFormValue,
-    MemberActionState
+    MembersActionState
   >(
     initialData,
     removeMemberAction,
@@ -323,20 +309,19 @@ function RemoveMemberDialog({
     INITIAL_REMOVE_MEMBER_FORM,
   );
 
-  useEffect(() => {
-    if (!open) {
-      reset();
-    }
-  }, [open, reset]);
-
   if (!member) {
     return null;
   }
 
+  const cancel = () => {
+    reset();
+    onClose();
+  };
+
   const primaryText = member.user.name ?? member.user.email ?? "Без имени";
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={cancel} fullWidth maxWidth="sm">
       <form action={action}>
         <input type="hidden" name="workspaceId" value={formValue.workspaceId} />
         <input type="hidden" name="memberId" value={formValue.memberId} />
@@ -354,7 +339,7 @@ function RemoveMemberDialog({
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={onClose} disabled={isPending}>
+          <Button onClick={cancel} disabled={isPending}>
             Отмена
           </Button>
           <Button type="submit" color="error" variant="contained" disabled={isPending}>
@@ -391,12 +376,8 @@ export default function MembersClient({ workspace, members, currentUser }: Membe
     [members],
   );
 
-  const handleFeedback = useCallback(
-    (message: string, severity: "success" | "error" = "success") => {
-      notify({ message, severity });
-    },
-    [notify],
-  );
+  const handleFeedback = (message: string, severity: "success" | "error" = "success") =>
+    notify({ message, severity });
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 } }}>
@@ -420,7 +401,11 @@ export default function MembersClient({ workspace, members, currentUser }: Membe
             <Button component={Link} href={ROUTES.workspaces} variant="outlined">
               К рабочим областям
             </Button>
-            <Button component={Link} href={ROUTES.workspaceRooms(workspace.id)} variant="outlined">
+            <Button
+              component={Link}
+              href={ROUTES.workspaceRooms(workspace.slug)}
+              variant="outlined"
+            >
               Комнаты
             </Button>
             <Button
@@ -582,7 +567,6 @@ export default function MembersClient({ workspace, members, currentUser }: Membe
           </CardContent>
         </Card>
       </Stack>
-
       <ChangeRoleDialog
         open={Boolean(changeTarget)}
         onClose={() => setChangeTarget(null)}
@@ -590,7 +574,6 @@ export default function MembersClient({ workspace, members, currentUser }: Membe
         workspaceId={workspace.id}
         member={changeTarget}
       />
-
       <RemoveMemberDialog
         open={Boolean(removeTarget)}
         onClose={() => setRemoveTarget(null)}

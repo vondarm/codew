@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import {
   Alert,
   Button,
@@ -45,14 +44,13 @@ export default function TemplateDeleteDialog({
     {},
   );
 
-  useEffect(() => {
-    if (!open) {
-      reset();
-    }
-  }, [open, reset]);
+  const cancel = () => {
+    reset();
+    onClose();
+  };
 
   return (
-    <Dialog open={open} onClose={isPending ? undefined : onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={isPending ? undefined : cancel} fullWidth maxWidth="sm">
       <form action={action}>
         <input type="hidden" name="workspaceId" value={workspaceId} />
         <input type="hidden" name="templateId" value={template?.id ?? ""} />
@@ -69,7 +67,7 @@ export default function TemplateDeleteDialog({
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose} disabled={isPending}>
+          <Button onClick={cancel} disabled={isPending}>
             Отмена
           </Button>
           <Button type="submit" color="error" variant="contained" disabled={isPending || !template}>

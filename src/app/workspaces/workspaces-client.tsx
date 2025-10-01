@@ -1,7 +1,7 @@
 "use client";
 
 import type { ChangeEvent } from "react";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import type { MemberRole } from "@prisma/client";
 
 import {
@@ -124,10 +124,7 @@ type WorkspaceFormProps = {
 
 function CreateWorkspaceDialog({ open, onClose, onSuccess }: WorkspaceFormProps) {
   const [slugLocked, setSlugLocked] = useState(false);
-  const { formValue, set, action, state, isPending, reset } = useForm<
-    WorkspaceFormValue,
-    WorkspaceActionState
-  >(
+  const { formValue, set, action, state, isPending, reset } = useForm(
     null,
     createWorkspaceAction,
     idleState,
@@ -139,12 +136,11 @@ function CreateWorkspaceDialog({ open, onClose, onSuccess }: WorkspaceFormProps)
     INITIAL_WORKSPACE,
   );
 
-  useEffect(() => {
-    if (!open) {
-      reset();
-      setSlugLocked(false);
-    }
-  }, [open, reset]);
+  const cancel = () => {
+    reset();
+    onClose();
+    setSlugLocked(false);
+  };
 
   const handleNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
@@ -173,7 +169,7 @@ function CreateWorkspaceDialog({ open, onClose, onSuccess }: WorkspaceFormProps)
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={cancel} fullWidth maxWidth="sm">
       <form action={action}>
         <DialogTitle>Создать рабочую область</DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
@@ -209,7 +205,7 @@ function CreateWorkspaceDialog({ open, onClose, onSuccess }: WorkspaceFormProps)
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={onClose} disabled={isPending}>
+          <Button onClick={cancel} disabled={isPending}>
             Отмена
           </Button>
           <Button type="submit" variant="contained" disabled={isPending}>
@@ -242,10 +238,10 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
     INITIAL_WORKSPACE,
   );
 
-  useEffect(() => {
+  const cancel = () => {
     reset();
     setSlugLocked(true);
-  }, [reset, workspace]);
+  };
 
   if (!workspace) {
     return null;
@@ -278,7 +274,7 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={cancel} fullWidth maxWidth="sm">
       <form action={action}>
         <input type="hidden" name="workspaceId" value={workspace.id} />
         <DialogTitle>Редактировать рабочую область</DialogTitle>
@@ -317,7 +313,7 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={onClose} disabled={isPending}>
+          <Button onClick={cancel} disabled={isPending}>
             Отмена
           </Button>
           <Button type="submit" variant="contained" disabled={isPending}>
