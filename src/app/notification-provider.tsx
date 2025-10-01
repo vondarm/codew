@@ -33,17 +33,10 @@ const NotificationContext = createContext<NotificationContextValue | undefined>(
 
 const DEFAULT_DURATION = 6000;
 
-function generateId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-
-  return Math.random().toString(36).slice(2);
-}
-
 export function NotificationProvider({ children }: PropsWithChildren) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const timeouts = useRef<Map<string, number>>(new Map());
+  const nextId = useRef(0);
 
   const removeNotification = useCallback((id: string) => {
     setNotifications((current) => current.filter((notification) => notification.id !== id));
@@ -58,7 +51,8 @@ export function NotificationProvider({ children }: PropsWithChildren) {
 
   const notify = useCallback(
     (input: NotificationInput) => {
-      const id = generateId();
+      nextId.current += 1;
+      const id = nextId.current.toString();
       const severity = input.severity ?? "info";
       const duration = input.duration ?? DEFAULT_DURATION;
 
