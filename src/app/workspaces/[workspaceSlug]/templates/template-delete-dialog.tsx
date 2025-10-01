@@ -2,7 +2,6 @@
 
 import { useActionState, useEffect } from "react";
 import {
-  Alert,
   Button,
   CircularProgress,
   Dialog,
@@ -17,6 +16,7 @@ import type { SerializedTemplate } from "@/lib/services/template";
 
 import { deleteTemplateAction } from "./actions";
 import { templateActionIdleState } from "./template-action-state";
+import { useNotification } from "@/app/notification-provider";
 
 type TemplateDeleteDialogProps = {
   open: boolean;
@@ -37,6 +37,7 @@ export default function TemplateDeleteDialog({
     deleteTemplateAction,
     templateActionIdleState,
   );
+  const notify = useNotification();
 
   useEffect(() => {
     if (state.status === "success") {
@@ -44,6 +45,12 @@ export default function TemplateDeleteDialog({
       onClose();
     }
   }, [onClose, onSuccess, state.message, state.status]);
+
+  useEffect(() => {
+    if (state.status === "error" && state.message) {
+      notify({ severity: "error", message: state.message });
+    }
+  }, [notify, state.message, state.status]);
 
   return (
     <Dialog open={open} onClose={isPending ? undefined : onClose} fullWidth maxWidth="sm">
@@ -53,9 +60,6 @@ export default function TemplateDeleteDialog({
         <DialogTitle>Удалить шаблон</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ pt: 1 }}>
-            {state.status === "error" && state.message ? (
-              <Alert severity="error">{state.message}</Alert>
-            ) : null}
             <Typography>
               Вы уверены, что хотите удалить шаблон <strong>{template?.name}</strong>? Действие
               нельзя отменить.

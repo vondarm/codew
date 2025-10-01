@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { MemberRole, RoomStatus } from "@prisma/client";
 import {
-  Alert,
   Box,
   Button,
   Card,
@@ -27,6 +26,7 @@ import { ROUTES } from "@/routes";
 import RoomFormDialog, { type RoomFormDialogMode } from "./room-form-dialog";
 import RoomCloseDialog from "./room-close-dialog";
 import RoomSlugDialog from "./room-slug-dialog";
+import { useNotification } from "@/app/notification-provider";
 
 type WorkspaceSummary = {
   id: string;
@@ -41,11 +41,6 @@ type CurrentUserSummary = {
   image: string | null;
   role: MemberRole;
 };
-
-type FeedbackState = {
-  message: string;
-  severity: "success" | "error";
-} | null;
 
 type RoomsClientProps = {
   workspace: WorkspaceSummary;
@@ -87,7 +82,7 @@ export default function RoomsClient({
   canManage,
   currentUser,
 }: RoomsClientProps) {
-  const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const notify = useNotification();
   const [formMode, setFormMode] = useState<RoomFormDialogMode>("create");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [targetRoom, setTargetRoom] = useState<SerializedRoom | null>(null);
@@ -102,16 +97,6 @@ export default function RoomsClient({
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
   }, [rooms]);
-
-  useEffect(() => {
-    if (!feedback) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => setFeedback(null), 6000);
-
-    return () => window.clearTimeout(timer);
-  }, [feedback]);
 
   const openCreateDialog = () => {
     setFormMode("create");
@@ -148,9 +133,12 @@ export default function RoomsClient({
     setSlugDialogKey((value) => value + 1);
   };
 
-  const handleFeedback = (message: string, severity: "success" | "error" = "success") => {
-    setFeedback({ message, severity });
-  };
+  const handleFeedback = useCallback(
+    (message: string, severity: "success" | "error" = "success") => {
+      notify({ message, severity });
+    },
+    [notify],
+  );
 
   const handleFormSuccess = (message: string) => {
     handleFeedback(message, "success");
@@ -214,8 +202,6 @@ export default function RoomsClient({
             </Button>
           </Stack>
         </Stack>
-
-        {feedback ? <Alert severity={feedback.severity}>{feedback.message}</Alert> : null}
 
         <Card variant="outlined">
           <CardContent>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { MemberRole, RoomStatus } from "@prisma/client";
 import {
@@ -18,6 +18,7 @@ import {
 
 import type { SerializedRoom } from "@/lib/services/room";
 import { ROUTES } from "@/routes";
+import { useNotification } from "@/app/notification-provider";
 
 import RoomFormDialog from "@/app/workspaces/[workspaceSlug]/rooms/room-form-dialog";
 import RoomCloseDialog from "@/app/workspaces/[workspaceSlug]/rooms/room-close-dialog";
@@ -35,11 +36,6 @@ type RoomSettingsClientProps = {
   canManage: boolean;
   viewerRole: MemberRole | null;
 };
-
-type FeedbackState = {
-  message: string;
-  severity: "success" | "error";
-} | null;
 
 const STATUS_LABELS: Record<RoomStatus, string> = {
   ACTIVE: "Активна",
@@ -74,23 +70,13 @@ export default function RoomSettingsClient({
   canManage,
   viewerRole,
 }: RoomSettingsClientProps) {
-  const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const notify = useNotification();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editDialogKey, setEditDialogKey] = useState(0);
   const [closeRoomTarget, setCloseRoomTarget] = useState<SerializedRoom | null>(null);
   const [closeDialogKey, setCloseDialogKey] = useState(0);
   const [slugDialogKey, setSlugDialogKey] = useState(0);
   const [slugRoomTarget, setSlugRoomTarget] = useState<SerializedRoom | null>(null);
-
-  useEffect(() => {
-    if (!feedback) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => setFeedback(null), 6000);
-
-    return () => window.clearTimeout(timer);
-  }, [feedback]);
 
   const statusLabel = STATUS_LABELS[room.status];
   const statusColor = STATUS_COLOR[room.status];
@@ -103,9 +89,12 @@ export default function RoomSettingsClient({
     ];
   }, [room.allowAnonymousEdit, room.allowAnonymousJoin, room.allowAnonymousView]);
 
-  const handleFeedback = (message: string, severity: "success" | "error" = "success") => {
-    setFeedback({ message, severity });
-  };
+  const handleFeedback = useCallback(
+    (message: string, severity: "success" | "error" = "success") => {
+      notify({ message, severity });
+    },
+    [notify],
+  );
 
   const handleCopyLink = async () => {
     try {
@@ -197,8 +186,6 @@ export default function RoomSettingsClient({
             </Button>
           </Stack>
         </Stack>
-
-        {feedback ? <Alert severity={feedback.severity}>{feedback.message}</Alert> : null}
 
         {roleNotice ? (
           <Alert severity={viewerRole === MemberRole.VIEWER ? "info" : "success"}>

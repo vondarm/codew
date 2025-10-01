@@ -2,7 +2,6 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Button,
   CircularProgress,
   Dialog,
@@ -16,6 +15,7 @@ import {
 } from "@mui/material";
 
 import type { SerializedRoom } from "@/lib/services/room";
+import { useNotification } from "@/app/notification-provider";
 
 import { createRoomAction, updateRoomAction } from "./actions";
 import { roomActionIdleState } from "./room-action-state";
@@ -42,6 +42,7 @@ export default function RoomFormDialog({
   const action = useMemo(() => (mode === "create" ? createRoomAction : updateRoomAction), [mode]);
 
   const [state, formAction, isPending] = useActionState(action, roomActionIdleState);
+  const notify = useNotification();
 
   const [name, setName] = useState(room?.name ?? "");
   const [code, setCode] = useState(room?.code ?? "");
@@ -67,6 +68,12 @@ export default function RoomFormDialog({
     }
   }, [mode, onSuccess, state.message, state.status]);
 
+  useEffect(() => {
+    if (state.status === "error" && state.message) {
+      notify({ severity: "error", message: state.message });
+    }
+  }, [notify, state.message, state.status]);
+
   const title = mode === "create" ? "Новая комната" : "Настройки комнаты";
   const submitLabel = mode === "create" ? "Создать" : "Сохранить";
 
@@ -81,9 +88,6 @@ export default function RoomFormDialog({
         <DialogTitle>{title}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            {state.status === "error" && state.message ? (
-              <Alert severity="error">{state.message}</Alert>
-            ) : null}
             <TextField
               label="Название"
               name="name"

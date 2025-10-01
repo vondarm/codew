@@ -2,7 +2,6 @@
 
 import { useActionState, useEffect } from "react";
 import {
-  Alert,
   Button,
   CircularProgress,
   Dialog,
@@ -16,6 +15,7 @@ import type { SerializedRoom } from "@/lib/services/room";
 
 import { regenerateRoomSlugAction } from "./actions";
 import { roomActionIdleState } from "./room-action-state";
+import { useNotification } from "@/app/notification-provider";
 
 type RoomSlugDialogProps = {
   open: boolean;
@@ -36,6 +36,7 @@ export default function RoomSlugDialog({
     regenerateRoomSlugAction,
     roomActionIdleState,
   );
+  const notify = useNotification();
 
   useEffect(() => {
     if (state.status === "success") {
@@ -43,6 +44,12 @@ export default function RoomSlugDialog({
       onClose();
     }
   }, [onClose, onSuccess, state.message, state.status]);
+
+  useEffect(() => {
+    if (state.status === "error" && state.message) {
+      notify({ severity: "error", message: state.message });
+    }
+  }, [notify, state.message, state.status]);
 
   return (
     <Dialog open={open} onClose={isPending ? undefined : onClose} maxWidth="sm" fullWidth>
@@ -58,11 +65,6 @@ export default function RoomSlugDialog({
           <Typography color="text.secondary">
             Текущая ссылка: <strong>{room?.slug}</strong>
           </Typography>
-          {state.status === "error" && state.message ? (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {state.message}
-            </Alert>
-          ) : null}
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} disabled={isPending}>
