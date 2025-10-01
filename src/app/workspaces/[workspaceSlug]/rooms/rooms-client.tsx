@@ -154,12 +154,12 @@ export default function RoomsClient({
             <Button component={Link} href={ROUTES.workspaces} variant="outlined">
               К рабочим областям
             </Button>
-            <Button component={Link} href={ROUTES.workspace(workspace.id)} variant="outlined">
+            <Button component={Link} href={ROUTES.workspace(workspace.slug)} variant="outlined">
               Участники
             </Button>
             <Button
               component={Link}
-              href={ROUTES.workspaceTemplates(workspace.id)}
+              href={ROUTES.workspaceTemplates(workspace.slug)}
               variant="outlined"
             >
               Шаблоны

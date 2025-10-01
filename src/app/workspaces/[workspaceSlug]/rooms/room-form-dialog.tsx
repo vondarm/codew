@@ -46,16 +46,24 @@ export default function RoomFormDialog({
   submitLabel,
   formAction,
 }: RoomFormDialogProps) {
-  const { formValue, state, isPending, action, set } = useForm(
-    { ...room },
+  const { formValue, state, isPending, action, set, reset } = useForm(
+    room,
     formAction,
     roomActionIdleState,
-    onSuccess,
+    () => {
+      onSuccess();
+      onClose();
+    },
     INITIAL_ROOM,
   );
 
+  const cancel = () => {
+    onClose();
+    reset();
+  };
+
   return (
-    <Dialog open={open} onClose={isPending ? undefined : onClose} fullWidth maxWidth="md">
+    <Dialog open={open} onClose={cancel} fullWidth maxWidth="md">
       <form action={action}>
         <input type="hidden" name="workspaceId" value={workspaceId} />
         {room ? <input type="hidden" name="roomId" value={room.id} /> : null}
@@ -141,7 +149,7 @@ export default function RoomFormDialog({
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button type="button" onClick={onClose} disabled={isPending}>
+          <Button type="button" onClick={cancel} disabled={isPending}>
             Отмена
           </Button>
           <Button type="submit" variant="contained" disabled={isPending}>

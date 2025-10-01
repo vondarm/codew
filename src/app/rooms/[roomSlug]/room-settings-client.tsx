@@ -150,10 +150,14 @@ export default function RoomSettingsClient({
             </Stack>
           </Box>
           <Stack direction="row" spacing={1}>
-            <Button component={Link} href={ROUTES.workspace(workspace.id)} variant="outlined">
+            <Button component={Link} href={ROUTES.workspace(workspace.slug)} variant="outlined">
               К рабочей области
             </Button>
-            <Button component={Link} href={ROUTES.workspaceRooms(workspace.id)} variant="outlined">
+            <Button
+              component={Link}
+              href={ROUTES.workspaceRooms(workspace.slug)}
+              variant="outlined"
+            >
               Комнаты
             </Button>
           </Stack>

@@ -9,8 +9,8 @@ export const ROUTES = {
   workspace(workspaceSlug: string) {
     return `/workspaces/${workspaceSlug}`;
   },
-  workspaceRooms(workspaceId: string) {
-    return `/workspaces/${workspaceId}/rooms`;
+  workspaceRooms(workspaceSlug: string) {
+    return `/workspaces/${workspaceSlug}/rooms`;
   },
   workspaceTemplates(workspaceSlug: string) {
     return `/workspaces/${workspaceSlug}/templates`;

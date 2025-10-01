@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import {
   Alert,
   Button,
@@ -63,14 +62,13 @@ export default function RoomSlugDialog({
     INITIAL_ROOM_SLUG_FORM,
   );
 
-  useEffect(() => {
-    if (!open) {
-      reset();
-    }
-  }, [open, reset]);
+  const cancel = () => {
+    reset();
+    onClose();
+  };
 
   return (
-    <Dialog open={open} onClose={isPending ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={cancel} maxWidth="sm" fullWidth>
       <form action={action}>
         <input type="hidden" name="workspaceId" value={formValue.workspaceId} />
         <input type="hidden" name="roomId" value={formValue.roomId} />
@@ -88,7 +86,7 @@ export default function RoomSlugDialog({
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose} disabled={isPending}>
+          <Button onClick={cancel} disabled={isPending}>
             Отмена
           </Button>
           <Button type="submit" variant="contained" disabled={isPending || !room}>

@@ -3,24 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { getCurrentUser } from "@/lib/auth";
-import {
-  MemberServiceError,
-  type MemberField,
-  inviteMember,
-  changeRole,
-  removeMember,
-} from "@/lib/services/member";
+import { changeRole, inviteMember, MemberServiceError, removeMember } from "@/lib/services/member";
 import { findWorkspaceById } from "@/lib/prisma/workspace";
 import { ROUTES } from "@/routes";
 import { MemberRole } from "@prisma/client";
-
-export type MemberActionState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-  fieldErrors?: Partial<Record<MemberField, string>>;
-};
-
-const idleState: MemberActionState = { status: "idle" };
+import { MembersActionState } from "@/app/workspaces/[workspaceSlug]/members-action-state";
 
 async function revalidateWorkspaceMembers(workspaceId: string) {
   const workspace = await findWorkspaceById(workspaceId);
@@ -30,7 +17,7 @@ async function revalidateWorkspaceMembers(workspaceId: string) {
   }
 }
 
-function buildErrorState(error: unknown, fallbackMessage: string): MemberActionState {
+function buildErrorState(error: unknown, fallbackMessage: string): MembersActionState {
   if (error instanceof MemberServiceError) {
     const fieldErrors = error.field ? { [error.field]: error.message } : undefined;
     const message = error.field ? undefined : error.message;
@@ -59,9 +46,9 @@ function parseRole(rawRole: FormDataEntryValue | null): MemberRole | null {
 }
 
 export async function inviteMemberAction(
-  _prevState: MemberActionState,
+  _prevState: MembersActionState,
   formData: FormData,
-): Promise<MemberActionState> {
+): Promise<MembersActionState> {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -107,9 +94,9 @@ export async function inviteMemberAction(
 }
 
 export async function changeMemberRoleAction(
-  _prevState: MemberActionState,
+  _prevState: MembersActionState,
   formData: FormData,
-): Promise<MemberActionState> {
+): Promise<MembersActionState> {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -155,9 +142,9 @@ export async function changeMemberRoleAction(
 }
 
 export async function removeMemberAction(
-  _prevState: MemberActionState,
+  _prevState: MembersActionState,
   formData: FormData,
-): Promise<MemberActionState> {
+): Promise<MembersActionState> {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -192,5 +179,3 @@ export async function removeMemberAction(
     return buildErrorState(error, "Не удалось удалить участника.");
   }
 }
-
-export { idleState as memberActionIdleState };

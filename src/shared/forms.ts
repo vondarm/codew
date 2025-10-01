@@ -15,7 +15,7 @@ export const useForm = <T extends object, ActionState extends object>(
   action: (prevState: Awaited<ActionState>, data: FormData) => Promise<ActionState>,
   initialActionState: Awaited<ActionState>,
   onSuccess: () => void,
-  initialFormValue: Partial<T>,
+  initialFormValue: T,
 ) => {
   const [localFormData, setLocalFormData] = useState<Partial<T>>({});
   const [state, formAction, isPending] = useActionState(
@@ -26,11 +26,11 @@ export const useForm = <T extends object, ActionState extends object>(
     initialActionState,
   );
 
-  const formValue = {
+  const formValue: T = {
     ...initialFormValue,
-    ...(current ?? {}),
+    ...current,
     ...localFormData,
-  } as T;
+  };
 
   const set =
     <Key extends keyof T>(key: Key) =>

@@ -10,6 +10,7 @@ import {
   regenerateRoomSlug,
   updateRoom,
 } from "@/lib/services/room";
+import { getWorkspace } from "@/lib/services/workspace";
 import type { RoomActionState } from "./room-action-state";
 import { ROUTES } from "@/routes";
 
@@ -76,6 +77,7 @@ export async function createRoomAction(
   }
 
   try {
+    const workspaceSlug = (await getWorkspace(workspaceId)).slug;
     const room = await createRoom(user.id, workspaceId, {
       name,
       code,
@@ -84,7 +86,7 @@ export async function createRoomAction(
       allowAnonymousJoin,
     });
 
-    revalidatePath(ROUTES.workspaceRooms(workspaceId));
+    revalidatePath(ROUTES.workspaceRooms(workspaceSlug));
     revalidatePath(ROUTES.room(room.slug));
 
     return {
@@ -133,6 +135,7 @@ export async function updateRoomAction(
   }
 
   try {
+    const workspaceSlug = (await getWorkspace(workspaceId)).slug;
     const room = await updateRoom(user.id, roomId, {
       name,
       code,
@@ -141,7 +144,7 @@ export async function updateRoomAction(
       allowAnonymousJoin,
     });
 
-    revalidatePath(ROUTES.workspaceRooms(workspaceId));
+    revalidatePath(ROUTES.workspaceRooms(workspaceSlug));
     revalidatePath(ROUTES.room(room.slug));
 
     return {
@@ -180,9 +183,10 @@ export async function closeRoomAction(
   }
 
   try {
+    const workspaceSlug = (await getWorkspace(workspaceId)).slug;
     const room = await closeRoom(user.id, roomId);
 
-    revalidatePath(ROUTES.workspaceRooms(workspaceId));
+    revalidatePath(ROUTES.workspaceRooms(workspaceSlug));
     revalidatePath(ROUTES.room(room.slug));
 
     return {
@@ -223,13 +227,14 @@ export async function regenerateRoomSlugAction(
   }
 
   try {
+    const workspaceSlug = (await getWorkspace(workspaceId)).slug;
     const room = await regenerateRoomSlug(user.id, roomId);
 
-    revalidatePath(ROUTES.workspaceRooms(workspaceId));
+    revalidatePath(ROUTES.workspaceRooms(workspaceSlug));
     revalidatePath(ROUTES.room(room.slug));
 
     if (previousSlug && previousSlug !== room.slug) {
-      revalidatePath(ROUTES.room(previousSlug));
+      revalidatePath(ROUTES.room(room.slug));
     }
 
     return {

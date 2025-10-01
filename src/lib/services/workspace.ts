@@ -197,8 +197,14 @@ export async function deleteWorkspace(ownerId: string, workspaceId: string): Pro
   await deleteWorkspaceRecord(existing.id);
 }
 
-export async function getWorkspace(ownerId: string, workspaceId: string): Promise<Workspace> {
-  return assertWorkspaceOwnership(workspaceId, ownerId);
+export async function getWorkspace(workspaceId: string): Promise<Workspace> {
+  const workspace = await findWorkspaceById(workspaceId);
+
+  if (!workspace) {
+    throw new WorkspaceError("Рабочая область не найдена.", "NOT_FOUND");
+  }
+
+  return workspace;
 }
 
 export async function transferWorkspaceOwnership(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ComponentProps } from "react";
 import type { MemberRole, TemplateLanguage } from "@prisma/client";
 import Link from "next/link";
@@ -98,12 +98,8 @@ export default function TemplatesClient({
   const [filterLanguage, setFilterLanguage] = useState<LanguageFilterValue>("ALL");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [createDialogKey, setCreateDialogKey] = useState(0);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<"view" | "edit">("view");
-  const [isDrawerPending, setIsDrawerPending] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SerializedTemplate | null>(null);
-  const [deleteDialogKey, setDeleteDialogKey] = useState(0);
 
   const filteredTemplates = useMemo(() => {
     if (filterLanguage === "ALL") {
@@ -113,45 +109,11 @@ export default function TemplatesClient({
     return templates.filter((template) => template.language === filterLanguage);
   }, [filterLanguage, templates]);
 
-  useEffect(() => {
-    if (templates.length === 0) {
-      setSelectedTemplateId(null);
-      return;
-    }
-
-    setSelectedTemplateId((current) => {
-      if (current && templates.some((template) => template.id === current)) {
-        return current;
-      }
-
-      return null;
-    });
-  }, [templates]);
-
-  useEffect(() => {
-    if (filteredTemplates.length === 0) {
-      setSelectedTemplateId(null);
-      return;
-    }
-
-    setSelectedTemplateId((current) => {
-      if (current && filteredTemplates.some((template) => template.id === current)) {
-        return current;
-      }
-
-      return null;
-    });
-  }, [filteredTemplates]);
-
   const selectedTemplate =
     filteredTemplates.find((template) => template.id === selectedTemplateId) ?? null;
 
-  const handleFeedback = useCallback(
-    (message: string, severity: "success" | "error" = "success") => {
-      notify({ message, severity });
-    },
-    [notify],
-  );
+  const handleFeedback = (message: string, severity: "success" | "error" = "success") =>
+    notify({ message, severity });
 
   const openCreateDialog = () => {
     setIsCreateOpen(true);
@@ -159,37 +121,21 @@ export default function TemplatesClient({
 
   const closeCreateDialog = () => {
     setIsCreateOpen(false);
-    setCreateDialogKey((value) => value + 1);
   };
 
   const closeDeleteDialog = () => {
     setDeleteTarget(null);
-    setDeleteDialogKey((value) => value + 1);
   };
 
   const openDrawerForTemplate = (templateId: string, mode: "view" | "edit" = "view") => {
     setSelectedTemplateId(templateId);
     setDrawerMode(mode);
-    setIsDrawerPending(false);
-    setIsDrawerOpen(true);
   };
 
   const closeDrawer = () => {
-    if (isDrawerPending) {
-      return;
-    }
-
-    setIsDrawerOpen(false);
     setDrawerMode("view");
-    setIsDrawerPending(false);
+    setSelectedTemplateId(null);
   };
-
-  useEffect(() => {
-    if (!selectedTemplate) {
-      setIsDrawerOpen(false);
-      setDrawerMode("view");
-    }
-  }, [selectedTemplate]);
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
@@ -336,7 +282,7 @@ export default function TemplatesClient({
 
       <Drawer
         anchor="right"
-        open={isDrawerOpen && Boolean(selectedTemplate)}
+        open={Boolean(selectedTemplate)}
         onClose={closeDrawer}
         ModalProps={{ keepMounted: true }}
         PaperProps={{
@@ -364,7 +310,7 @@ export default function TemplatesClient({
               </Typography>
             ) : null}
           </Box>
-          <IconButton onClick={closeDrawer} disabled={isDrawerPending}>
+          <IconButton onClick={closeDrawer}>
             <CloseIcon />
           </IconButton>
         </Stack>
@@ -451,15 +397,12 @@ export default function TemplatesClient({
                 languages={languageOptions}
                 template={selectedTemplate}
                 onCancel={() => {
-                  setIsDrawerPending(false);
                   setDrawerMode("view");
                 }}
                 onSuccess={(message) => {
                   handleFeedback(message, "success");
-                  setIsDrawerPending(false);
                   setDrawerMode("view");
                 }}
-                onPendingChange={setIsDrawerPending}
               >
                 {({ fields, actions }) => (
                   <Stack sx={{ height: "100%" }}>
@@ -474,7 +417,6 @@ export default function TemplatesClient({
       </Drawer>
 
       <TemplateFormDialog
-        key={`create-${createDialogKey}`}
         open={isCreateOpen}
         mode="create"
         workspaceId={workspace.id}
@@ -483,7 +425,7 @@ export default function TemplatesClient({
         onSuccess={(message) => handleFeedback(message, "success")}
       />
       <TemplateDeleteDialog
-        key={`delete-${deleteDialogKey}-${deleteTarget?.id ?? "none"}`}
+        key={`delete}-${deleteTarget?.id}`}
         open={Boolean(deleteTarget)}
         workspaceId={workspace.id}
         template={deleteTarget}
