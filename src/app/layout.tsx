@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AppThemeProvider } from "./theme-provider";
+import { NotificationProvider } from "./notification-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,7 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AppThemeProvider>{children}</AppThemeProvider>
+        <AppThemeProvider>
+          <NotificationProvider>{children}</NotificationProvider>
+        </AppThemeProvider>
       </body>
     </html>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ComponentProps } from "react";
 import type { MemberRole, TemplateLanguage } from "@prisma/client";
 import Link from "next/link";
@@ -34,6 +34,7 @@ import { ROUTES } from "@/routes";
 import TemplateFormDialog from "./template-form-dialog";
 import TemplateForm, { languageLabel } from "./template-form";
 import TemplateDeleteDialog from "./template-delete-dialog";
+import { useNotification } from "@/app/notification-provider";
 
 type CloseIconProps = ComponentProps<typeof SvgIcon>;
 
@@ -67,11 +68,6 @@ type TemplatesClientProps = {
   currentUser: CurrentUserSummary;
 };
 
-type FeedbackState = {
-  message: string;
-  severity: "success" | "error";
-} | null;
-
 type LanguageFilterValue = TemplateLanguage | "ALL";
 
 const ROLE_LABELS: Record<MemberRole, string> = {
@@ -98,7 +94,7 @@ export default function TemplatesClient({
   canManage,
   currentUser,
 }: TemplatesClientProps) {
-  const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const notify = useNotification();
   const [filterLanguage, setFilterLanguage] = useState<LanguageFilterValue>("ALL");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -147,22 +143,15 @@ export default function TemplatesClient({
     });
   }, [filteredTemplates]);
 
-  useEffect(() => {
-    if (!feedback) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => setFeedback(null), 6000);
-
-    return () => window.clearTimeout(timer);
-  }, [feedback]);
-
   const selectedTemplate =
     filteredTemplates.find((template) => template.id === selectedTemplateId) ?? null;
 
-  const handleFeedback = (message: string, severity: "success" | "error" = "success") => {
-    setFeedback({ message, severity });
-  };
+  const handleFeedback = useCallback(
+    (message: string, severity: "success" | "error" = "success") => {
+      notify({ message, severity });
+    },
+    [notify],
+  );
 
   const openCreateDialog = () => {
     setIsCreateOpen(true);
@@ -229,16 +218,6 @@ export default function TemplatesClient({
             </Button>
           </Stack>
         </Stack>
-
-        {feedback ? (
-          <Alert
-            severity={feedback.severity}
-            onClose={() => setFeedback(null)}
-            sx={{ alignSelf: "flex-start", minWidth: { xs: "100%", sm: 360 } }}
-          >
-            {feedback.message}
-          </Alert>
-        ) : null}
 
         <Card variant="outlined">
           <CardContent>

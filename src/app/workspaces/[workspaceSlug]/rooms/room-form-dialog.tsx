@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Alert,
   Button,
   CircularProgress,
   Dialog,
@@ -15,6 +14,7 @@ import {
 } from "@mui/material";
 
 import type { SerializedRoom } from "@/lib/services/room";
+// import { useNotification } from "@/app/notification-provider";
 
 import { roomActionIdleState, RoomActionState } from "./room-action-state";
 import { useForm } from "@/shared/forms";
@@ -56,6 +56,8 @@ export default function RoomFormDialog({
     INITIAL_ROOM,
   );
 
+  // const notify = useNotification();
+
   return (
     <Dialog open={open} onClose={isPending ? undefined : onClose} fullWidth maxWidth="md">
       <form action={action}>
@@ -79,9 +81,6 @@ export default function RoomFormDialog({
         <DialogTitle>{formTitle}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            {state.status === "error" && state.message ? (
-              <Alert severity="error">{state.message}</Alert>
-            ) : null}
             <TextField
               label="Название"
               name="name"

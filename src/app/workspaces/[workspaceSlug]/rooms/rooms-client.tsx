@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { MemberRole, RoomStatus } from "@prisma/client";
 import {
@@ -26,6 +26,7 @@ import { ROUTES } from "@/routes";
 import RoomFormDialog from "./room-form-dialog";
 import RoomCloseDialog from "./room-close-dialog";
 import RoomSlugDialog from "./room-slug-dialog";
+import { useNotification } from "@/app/notification-provider";
 import { createRoomAction, updateRoomAction } from "@/app/workspaces/[workspaceSlug]/rooms/actions";
 
 type WorkspaceSummary = {
@@ -82,6 +83,7 @@ export default function RoomsClient({
   canManage,
   currentUser,
 }: RoomsClientProps) {
+  const notify = useNotification();
   const [editRoomTarget, setEditRoomTarget] = useState<SerializedRoom | null>(null);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [closeRoomTarget, setCloseRoomTarget] = useState<SerializedRoom | null>(null);
@@ -125,9 +127,12 @@ export default function RoomsClient({
     setSlugRoomTarget(null);
   };
 
-  const handleFeedback = (message: string, severity: "success" | "error" = "success") => {
-    console.info("FEEDBACK", severity, message);
-  };
+  const handleFeedback = useCallback(
+    (message: string, severity: "success" | "error" = "success") => {
+      notify({ message, severity });
+    },
+    [notify],
+  );
 
   const handleFormSuccess = (message: string) => {
     handleFeedback(message, "success");

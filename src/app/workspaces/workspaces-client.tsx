@@ -1,12 +1,11 @@
 "use client";
 
 import type { ChangeEvent } from "react";
-import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import type { MemberRole } from "@prisma/client";
 
 import {
   Avatar,
-  Alert,
   Box,
   Button,
   Card,
@@ -18,7 +17,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Snackbar,
   Stack,
   Table,
   TableBody,
@@ -37,6 +35,7 @@ import { logout } from "@/lib/auth-client";
 
 import { ROUTES } from "@/routes";
 import Link from "next/link";
+import { useNotification } from "@/app/notification-provider";
 
 type SerializedWorkspace = {
   id: string;
@@ -59,11 +58,6 @@ type WorkspacesClientProps = {
   workspaces: SerializedWorkspace[];
   currentUser: CurrentUserSummary;
 };
-
-type FeedbackState = {
-  message: string;
-  severity: "success" | "error";
-} | null;
 
 const idleState: WorkspaceActionState = { status: "idle" };
 
@@ -149,6 +143,14 @@ function CreateWorkspaceDialog({ open, onClose, onSuccess }: WorkspaceFormProps)
     }
   }, [onClose, onSuccess, state.status]);
 
+  const notify = useNotification();
+
+  useEffect(() => {
+    if (state.status === "error" && state.message) {
+      notify({ severity: "error", message: state.message });
+    }
+  }, [notify, state.message, state.status]);
+
   const handleSlugChange = (event: ChangeEvent<HTMLInputElement>) => {
     const rawValue = event.target.value;
 
@@ -168,9 +170,6 @@ function CreateWorkspaceDialog({ open, onClose, onSuccess }: WorkspaceFormProps)
         <DialogTitle>Создать рабочую область</DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           <Stack spacing={2} mt={1}>
-            {state.status === "error" && state.message ? (
-              <Alert severity="error">{state.message}</Alert>
-            ) : null}
             <TextField
               autoFocus
               label="Название"
@@ -232,6 +231,14 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
     }
   }, [onClose, onSuccess, state.status]);
 
+  const notify = useNotification();
+
+  useEffect(() => {
+    if (state.status === "error" && state.message) {
+      notify({ severity: "error", message: state.message });
+    }
+  }, [notify, state.message, state.status]);
+
   const handleSlugChange = (event: ChangeEvent<HTMLInputElement>) => {
     const rawValue = event.target.value;
 
@@ -263,9 +270,6 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
         <DialogTitle>Редактировать рабочую область</DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           <Stack spacing={2} mt={1}>
-            {state.status === "error" && state.message ? (
-              <Alert severity="error">{state.message}</Alert>
-            ) : null}
             <TextField
               autoFocus
               label="Название"
@@ -319,14 +323,8 @@ function DeleteWorkspaceDialog({
   onSuccess,
   workspace,
 }: DeleteWorkspaceDialogProps) {
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    if (!open) {
-      setErrorMessage(null);
-    }
-  }, [open]);
+  const notify = useNotification();
 
   if (!workspace) {
     return null;
@@ -340,7 +338,7 @@ function DeleteWorkspaceDialog({
         onSuccess("Рабочая область удалена.");
         onClose();
       } else if (result.message) {
-        setErrorMessage(result.message);
+        notify({ severity: "error", message: result.message });
       }
     });
   };
@@ -350,7 +348,6 @@ function DeleteWorkspaceDialog({
       <DialogTitle>Удалить рабочую область</DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
         <Stack spacing={2} mt={1}>
-          {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
           <Typography>
             Вы уверены, что хотите удалить рабочую область «{workspace.name}»? Это действие нельзя
             отменить.
@@ -374,7 +371,7 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
   const [createOpen, setCreateOpen] = useState(false);
   const [editWorkspace, setEditWorkspace] = useState<SerializedWorkspace | null>(null);
   const [deleteWorkspace, setDeleteWorkspace] = useState<SerializedWorkspace | null>(null);
-  const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const notify = useNotification();
   const [isLogoutPending, startLogout] = useTransition();
 
   const sortedWorkspaces = useMemo(
@@ -392,9 +389,12 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
     });
   };
 
-  const handleFeedback = (message: string) => {
-    setFeedback({ message, severity: "success" });
-  };
+  const handleFeedback = useCallback(
+    (message: string) => {
+      notify({ message, severity: "success" });
+    },
+    [notify],
+  );
 
   const closeCreate = () => {
     setCreateOpen(false);
@@ -569,17 +569,6 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
         onSuccess={handleFeedback}
         workspace={deleteWorkspace}
       />
-
-      {feedback ? (
-        <Snackbar
-          open
-          autoHideDuration={5000}
-          onClose={() => setFeedback(null)}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        >
-          <Alert severity={feedback.severity}>{feedback.message}</Alert>
-        </Snackbar>
-      ) : null}
     </Container>
   );
 }
