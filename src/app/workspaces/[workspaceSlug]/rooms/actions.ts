@@ -234,7 +234,7 @@ export async function regenerateRoomSlugAction(
     revalidatePath(ROUTES.room(room.slug));
 
     if (previousSlug && previousSlug !== room.slug) {
-      revalidatePath(ROUTES.room(room.slug));
+      revalidatePath(ROUTES.room(previousSlug));
     }
 
     return {
