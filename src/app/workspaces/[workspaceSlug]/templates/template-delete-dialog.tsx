@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useEffect } from "react";
 import {
+  Alert,
   Button,
   CircularProgress,
   Dialog,
@@ -15,8 +16,8 @@ import {
 import type { SerializedTemplate } from "@/lib/services/template";
 
 import { deleteTemplateAction } from "./actions";
-import { templateActionIdleState } from "./template-action-state";
-import { useNotification } from "@/app/notification-provider";
+import { templateActionIdleState, type TemplateActionState } from "./template-action-state";
+import { useForm } from "@/shared/forms";
 
 type TemplateDeleteDialogProps = {
   open: boolean;
@@ -33,33 +34,34 @@ export default function TemplateDeleteDialog({
   onClose,
   onSuccess,
 }: TemplateDeleteDialogProps) {
-  const [state, formAction, isPending] = useActionState(
+  const { action, state, isPending, reset } = useForm<Record<string, never>, TemplateActionState>(
+    {},
     deleteTemplateAction,
     templateActionIdleState,
-  );
-  const notify = useNotification();
-
-  useEffect(() => {
-    if (state.status === "success") {
-      onSuccess(state.message ?? "Шаблон удалён.");
+    () => {
+      onSuccess("Шаблон удалён.");
       onClose();
-    }
-  }, [onClose, onSuccess, state.message, state.status]);
+    },
+    {},
+  );
 
   useEffect(() => {
-    if (state.status === "error" && state.message) {
-      notify({ severity: "error", message: state.message });
+    if (!open) {
+      reset();
     }
-  }, [notify, state.message, state.status]);
+  }, [open, reset]);
 
   return (
     <Dialog open={open} onClose={isPending ? undefined : onClose} fullWidth maxWidth="sm">
-      <form action={formAction}>
+      <form action={action}>
         <input type="hidden" name="workspaceId" value={workspaceId} />
         <input type="hidden" name="templateId" value={template?.id ?? ""} />
         <DialogTitle>Удалить шаблон</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ pt: 1 }}>
+            {state.status === "error" && state.message ? (
+              <Alert severity="error">{state.message}</Alert>
+            ) : null}
             <Typography>
               Вы уверены, что хотите удалить шаблон <strong>{template?.name}</strong>? Действие
               нельзя отменить.

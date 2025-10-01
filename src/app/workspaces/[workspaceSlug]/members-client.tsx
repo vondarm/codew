@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MemberRole } from "@prisma/client";
 import Link from "next/link";
 import {
+  Alert,
   Avatar,
   Box,
   Button,
@@ -37,9 +38,11 @@ import {
   changeMemberRoleAction,
   removeMemberAction,
   memberActionIdleState,
+  type MemberActionState,
 } from "./members-actions";
 import { ROUTES } from "@/routes";
 import { useNotification } from "@/app/notification-provider";
+import { useForm } from "@/shared/forms";
 
 const ROLE_LABELS: Record<MemberRole, string> = {
   ADMIN: "Администратор",
@@ -96,6 +99,16 @@ type MembersClientProps = {
   currentUser: UserSummary;
 };
 
+type InviteMemberFormValue = {
+  email: string;
+  role: MemberRole;
+};
+
+const INITIAL_INVITE_FORM: InviteMemberFormValue = {
+  email: "",
+  role: "EDITOR",
+};
+
 function InviteMemberForm({
   workspaceId,
   onSuccess,
@@ -103,35 +116,32 @@ function InviteMemberForm({
   workspaceId: string;
   onSuccess: (message: string) => void;
 }) {
-  const [state, formAction, isPending] = useActionState(inviteMemberAction, memberActionIdleState);
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<MemberRole>("EDITOR");
-  const notify = useNotification();
-
-  useEffect(() => {
-    if (state.status === "success") {
-      onSuccess(state.message ?? "Пользователь добавлен.");
-      setEmail("");
-      setRole("EDITOR");
-    }
-  }, [onSuccess, state.message, state.status]);
-
-  useEffect(() => {
-    if (state.status === "error" && state.message) {
-      notify({ severity: "error", message: state.message });
-    }
-  }, [notify, state.message, state.status]);
+  const { formValue, set, action, state, isPending } = useForm<
+    InviteMemberFormValue,
+    MemberActionState
+  >(
+    null,
+    inviteMemberAction,
+    memberActionIdleState,
+    () => {
+      onSuccess("Пользователь добавлен в рабочую область.");
+    },
+    INITIAL_INVITE_FORM,
+  );
 
   return (
-    <form action={formAction}>
+    <form action={action}>
       <input type="hidden" name="workspaceId" value={workspaceId} />
       <Stack spacing={2}>
+        {state.status === "error" && state.message ? (
+          <Alert severity="error">{state.message}</Alert>
+        ) : null}
         <TextField
           label="Email участника"
           name="email"
           type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          value={formValue.email}
+          onChange={(event) => set("email")(event.target.value)}
           required
           fullWidth
           disabled={isPending}
@@ -144,8 +154,8 @@ function InviteMemberForm({
             labelId="invite-role-label"
             label="Роль"
             name="role"
-            value={role}
-            onChange={(event) => setRole(event.target.value as MemberRole)}
+            value={formValue.role}
+            onChange={(event) => set("role")(event.target.value as MemberRole)}
           >
             {ROLE_OPTIONS.map((option) => (
               <MenuItem key={option} value={option}>
@@ -175,6 +185,14 @@ type ChangeRoleDialogProps = {
   member: SerializedMember | null;
 };
 
+type ChangeRoleFormValue = {
+  role: MemberRole;
+};
+
+const INITIAL_CHANGE_ROLE_FORM: ChangeRoleFormValue = {
+  role: "EDITOR",
+};
+
 function ChangeRoleDialog({
   open,
   onClose,
@@ -182,31 +200,25 @@ function ChangeRoleDialog({
   workspaceId,
   member,
 }: ChangeRoleDialogProps) {
-  const [state, formAction, isPending] = useActionState(
+  const currentRole: ChangeRoleFormValue | null = member ? { role: member.role } : null;
+
+  const { formValue, set, action, state, isPending, reset } = useForm<
+    ChangeRoleFormValue,
+    MemberActionState
+  >(
+    currentRole,
     changeMemberRoleAction,
     memberActionIdleState,
-  );
-  const [role, setRole] = useState<MemberRole>(member?.role ?? "EDITOR");
-  const notify = useNotification();
-
-  useEffect(() => {
-    if (open && member) {
-      setRole(member.role);
-    }
-  }, [member, open]);
-
-  useEffect(() => {
-    if (state.status === "success") {
-      onSuccess(state.message ?? "Роль обновлена.");
+    () => {
+      onSuccess("Роль обновлена.");
       onClose();
-    }
-  }, [onClose, onSuccess, state.message, state.status]);
+    },
+    INITIAL_CHANGE_ROLE_FORM,
+  );
 
   useEffect(() => {
-    if (state.status === "error" && state.message) {
-      notify({ severity: "error", message: state.message });
-    }
-  }, [notify, state.message, state.status]);
+    reset();
+  }, [member?.id, open, reset]);
 
   if (!member) {
     return null;
@@ -214,12 +226,15 @@ function ChangeRoleDialog({
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <form action={formAction}>
+      <form action={action}>
         <input type="hidden" name="workspaceId" value={workspaceId} />
         <input type="hidden" name="memberId" value={member.id} />
         <DialogTitle>Изменить роль участника</DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           <Stack spacing={2} mt={1}>
+            {state.status === "error" && state.message ? (
+              <Alert severity="error">{state.message}</Alert>
+            ) : null}
             <Box>
               <Typography fontWeight={600}>
                 {member.user.name ?? member.user.email ?? "Без имени"}
@@ -236,8 +251,8 @@ function ChangeRoleDialog({
                 labelId="change-role-label"
                 label="Роль"
                 name="role"
-                value={role}
-                onChange={(event) => setRole(event.target.value as MemberRole)}
+                value={formValue.role}
+                onChange={(event) => set("role")(event.target.value as MemberRole)}
               >
                 {ROLE_OPTIONS.map((option) => (
                   <MenuItem key={option} value={option}>
@@ -273,6 +288,16 @@ type RemoveMemberDialogProps = {
   member: SerializedMember | null;
 };
 
+type RemoveMemberFormValue = {
+  workspaceId: string;
+  memberId: string;
+};
+
+const INITIAL_REMOVE_MEMBER_FORM: RemoveMemberFormValue = {
+  workspaceId: "",
+  memberId: "",
+};
+
 function RemoveMemberDialog({
   open,
   onClose,
@@ -280,21 +305,29 @@ function RemoveMemberDialog({
   workspaceId,
   member,
 }: RemoveMemberDialogProps) {
-  const [state, formAction, isPending] = useActionState(removeMemberAction, memberActionIdleState);
-  const notify = useNotification();
+  const initialData: Partial<RemoveMemberFormValue> | null = member
+    ? { workspaceId, memberId: member.id }
+    : { workspaceId };
 
-  useEffect(() => {
-    if (state.status === "success") {
-      onSuccess(state.message ?? "Участник удалён.");
+  const { action, state, isPending, reset, formValue } = useForm<
+    RemoveMemberFormValue,
+    MemberActionState
+  >(
+    initialData,
+    removeMemberAction,
+    memberActionIdleState,
+    () => {
+      onSuccess("Участник удалён.");
       onClose();
-    }
-  }, [onClose, onSuccess, state.message, state.status]);
+    },
+    INITIAL_REMOVE_MEMBER_FORM,
+  );
 
   useEffect(() => {
-    if (state.status === "error" && state.message) {
-      notify({ severity: "error", message: state.message });
+    if (!open) {
+      reset();
     }
-  }, [notify, state.message, state.status]);
+  }, [open, reset]);
 
   if (!member) {
     return null;
@@ -304,12 +337,15 @@ function RemoveMemberDialog({
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <form action={formAction}>
-        <input type="hidden" name="workspaceId" value={workspaceId} />
-        <input type="hidden" name="memberId" value={member.id} />
+      <form action={action}>
+        <input type="hidden" name="workspaceId" value={formValue.workspaceId} />
+        <input type="hidden" name="memberId" value={formValue.memberId} />
         <DialogTitle>Удалить участника</DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           <Stack spacing={2} mt={1}>
+            {state.status === "error" && state.message ? (
+              <Alert severity="error">{state.message}</Alert>
+            ) : null}
             <Typography>
               Удалить участника «{primaryText}» из рабочей области? Пользователь потеряет доступ ко
               всем комнатам и настройкам.

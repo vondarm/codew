@@ -11,7 +11,7 @@ const withHandlers =
   };
 
 export const useForm = <T extends object, ActionState extends object>(
-  current: T,
+  current: Partial<T> | null | undefined,
   action: (prevState: Awaited<ActionState>, data: FormData) => Promise<ActionState>,
   initialActionState: Awaited<ActionState>,
   onSuccess: () => void,
@@ -26,11 +26,11 @@ export const useForm = <T extends object, ActionState extends object>(
     initialActionState,
   );
 
-  const formValue: T = {
+  const formValue = {
     ...initialFormValue,
-    ...current,
+    ...(current ?? {}),
     ...localFormData,
-  };
+  } as T;
 
   const set =
     <Key extends keyof T>(key: Key) =>
