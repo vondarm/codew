@@ -23,6 +23,8 @@ import {
 import type { SerializedRoom } from "@/lib/services/room";
 import { ROUTES } from "@/routes";
 
+import { copyRoomLink, formatRoomDate, ROOM_STATUS_COLORS, ROOM_STATUS_LABELS } from "./room-utils";
+
 import RoomFormDialog from "./room-form-dialog";
 import RoomCloseDialog from "./room-close-dialog";
 import RoomSlugDialog from "./room-slug-dialog";
@@ -49,33 +51,6 @@ type RoomsClientProps = {
   canManage: boolean;
   currentUser: CurrentUserSummary;
 };
-
-const STATUS_LABELS: Record<RoomStatus, string> = {
-  ACTIVE: "Активна",
-  CLOSED: "Закрыта",
-  ARCHIVED: "В архиве",
-};
-
-const STATUS_COLOR: Record<RoomStatus, "default" | "success" | "warning"> = {
-  ACTIVE: "success",
-  CLOSED: "default",
-  ARCHIVED: "warning",
-};
-
-function formatDate(value: string | null): string {
-  if (!value) {
-    return "—";
-  }
-
-  try {
-    return new Intl.DateTimeFormat("ru-RU", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
-}
 
 export default function RoomsClient({
   workspace,
@@ -138,9 +113,7 @@ export default function RoomsClient({
 
   const handleCopyLink = async (room: SerializedRoom) => {
     try {
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const url = `${origin}${ROUTES.room(room.slug)}`;
-      await navigator.clipboard.writeText(url);
+      await copyRoomLink(room.slug);
       handleFeedback("Ссылка скопирована.");
     } catch (error) {
       console.error(error);
@@ -254,8 +227,8 @@ export default function RoomsClient({
                 </TableHead>
                 <TableBody>
                   {sortedRooms.map((room) => {
-                    const statusColor = STATUS_COLOR[room.status];
-                    const statusLabel = STATUS_LABELS[room.status];
+                    const statusColor = ROOM_STATUS_COLORS[room.status];
+                    const statusLabel = ROOM_STATUS_LABELS[room.status];
 
                     return (
                       <TableRow key={room.id} hover>
@@ -263,7 +236,7 @@ export default function RoomsClient({
                           <Stack spacing={0.5}>
                             <Typography fontWeight={600}>{room.name}</Typography>
                             <Typography color="text.secondary" variant="body2">
-                              Создана {formatDate(room.createdAt)}
+                              Создана {formatRoomDate(room.createdAt)}
                             </Typography>
                           </Stack>
                         </TableCell>
@@ -308,7 +281,7 @@ export default function RoomsClient({
                             </Button>
                           </Stack>
                         </TableCell>
-                        <TableCell>{formatDate(room.updatedAt)}</TableCell>
+                        <TableCell>{formatRoomDate(room.updatedAt)}</TableCell>
                         <TableCell align="right">
                           <Stack direction="row" spacing={1} justifyContent="flex-end">
                             <Button
