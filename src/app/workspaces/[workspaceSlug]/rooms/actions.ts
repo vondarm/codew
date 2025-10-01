@@ -239,6 +239,7 @@ export async function regenerateRoomSlugAction(
 
     return {
       status: "success",
+      newSlug: room.slug,
       message: "Ссылка на комнату обновлена.",
     };
   } catch (error) {

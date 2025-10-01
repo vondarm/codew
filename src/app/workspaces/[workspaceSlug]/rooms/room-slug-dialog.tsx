@@ -14,7 +14,7 @@ import {
 import type { SerializedRoom } from "@/lib/services/room";
 
 import { regenerateRoomSlugAction } from "./actions";
-import { roomActionIdleState, type RoomActionState } from "./room-action-state";
+import { roomActionIdleState } from "./room-action-state";
 import { useForm } from "@/shared/forms";
 
 type RoomSlugDialogProps = {
@@ -22,7 +22,7 @@ type RoomSlugDialogProps = {
   workspaceId: string;
   room: SerializedRoom | null;
   onClose: () => void;
-  onSuccess: (message: string) => void;
+  onSuccess: (newSlug: string) => void;
 };
 
 type RoomSlugFormValue = {
@@ -46,18 +46,15 @@ export default function RoomSlugDialog({
 }: RoomSlugDialogProps) {
   const currentValue: Partial<RoomSlugFormValue> | null = room
     ? { workspaceId, roomId: room.id, previousSlug: room.slug }
-    : { workspaceId };
+    : null;
 
-  const { action, state, isPending, reset, formValue } = useForm<
-    RoomSlugFormValue,
-    RoomActionState
-  >(
+  const { action, state, isPending, reset, formValue } = useForm(
     currentValue,
     regenerateRoomSlugAction,
     roomActionIdleState,
-    () => {
-      onSuccess("Ссылка обновлена.");
+    (data) => {
       onClose();
+      if (data.newSlug) onSuccess(data.newSlug);
     },
     INITIAL_ROOM_SLUG_FORM,
   );

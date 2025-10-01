@@ -30,6 +30,7 @@ import {
   ROOM_STATUS_COLORS,
   ROOM_STATUS_LABELS,
 } from "@/app/workspaces/[workspaceSlug]/rooms/room-utils";
+import { useRouter } from "next/navigation";
 
 export type WorkspaceSummary = {
   id: string;
@@ -50,6 +51,7 @@ export default function RoomSettingsClient({
   canManage,
   viewerRole,
 }: RoomSettingsClientProps) {
+  const router = useRouter();
   const notify = useNotification();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [closeRoomTarget, setCloseRoomTarget] = useState<SerializedRoom | null>(null);
@@ -72,6 +74,11 @@ export default function RoomSettingsClient({
     },
     [notify],
   );
+
+  const onChangeSlug = (newSlug: string) => {
+    handleFeedback("Ссылка обновлена.");
+    router.replace(ROUTES.room(newSlug));
+  };
 
   const handleCopyLink = async () => {
     try {
@@ -277,7 +284,7 @@ export default function RoomSettingsClient({
         workspaceId={workspace.id}
         room={slugRoomTarget}
         onClose={closeSlugDialog}
-        onSuccess={handleFeedback}
+        onSuccess={onChangeSlug}
       />
     </Container>
   );
