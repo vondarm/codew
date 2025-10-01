@@ -222,8 +222,6 @@ type EditWorkspaceDialogProps = WorkspaceFormProps & {
 };
 
 function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorkspaceDialogProps) {
-  const [slugLocked, setSlugLocked] = useState(true);
-
   const { formValue, set, action, state, isPending, reset } = useForm<
     WorkspaceFormValue,
     WorkspaceActionState
@@ -240,7 +238,7 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
 
   const cancel = () => {
     reset();
-    setSlugLocked(true);
+    onClose();
   };
 
   if (!workspace) {
@@ -250,26 +248,15 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
   const handleNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     set("name")(value);
-
-    if (!slugLocked) {
-      const next = autoSlugFromName(value);
-
-      if (formValue.slug !== next) {
-        set("slug")(next);
-      }
-    }
   };
 
   const handleSlugChange = (event: ChangeEvent<HTMLInputElement>) => {
     const rawValue = event.target.value;
 
     if (!rawValue.trim()) {
-      setSlugLocked(false);
       set("slug")("");
       return;
     }
-
-    setSlugLocked(true);
     set("slug")(withSlugFallback(slugify(rawValue)));
   };
 
