@@ -1,10 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useState } from "react";
 import type { MemberRole } from "@prisma/client";
 import Link from "next/link";
 import {
-  Alert,
   Avatar,
   Box,
   Button,
@@ -40,6 +39,7 @@ import {
   memberActionIdleState,
 } from "./members-actions";
 import { ROUTES } from "@/routes";
+import { useNotification } from "@/app/notification-provider";
 
 const ROLE_LABELS: Record<MemberRole, string> = {
   ADMIN: "Администратор",
@@ -96,11 +96,6 @@ type MembersClientProps = {
   currentUser: UserSummary;
 };
 
-type FeedbackState = {
-  message: string;
-  severity: "success" | "error";
-} | null;
-
 function InviteMemberForm({
   workspaceId,
   onSuccess,
@@ -111,6 +106,7 @@ function InviteMemberForm({
   const [state, formAction, isPending] = useActionState(inviteMemberAction, memberActionIdleState);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<MemberRole>("EDITOR");
+  const notify = useNotification();
 
   useEffect(() => {
     if (state.status === "success") {
@@ -120,13 +116,16 @@ function InviteMemberForm({
     }
   }, [onSuccess, state.message, state.status]);
 
+  useEffect(() => {
+    if (state.status === "error" && state.message) {
+      notify({ severity: "error", message: state.message });
+    }
+  }, [notify, state.message, state.status]);
+
   return (
     <form action={formAction}>
       <input type="hidden" name="workspaceId" value={workspaceId} />
       <Stack spacing={2}>
-        {state.status === "error" && state.message ? (
-          <Alert severity="error">{state.message}</Alert>
-        ) : null}
         <TextField
           label="Email участника"
           name="email"
@@ -188,6 +187,7 @@ function ChangeRoleDialog({
     memberActionIdleState,
   );
   const [role, setRole] = useState<MemberRole>(member?.role ?? "EDITOR");
+  const notify = useNotification();
 
   useEffect(() => {
     if (open && member) {
@@ -202,6 +202,12 @@ function ChangeRoleDialog({
     }
   }, [onClose, onSuccess, state.message, state.status]);
 
+  useEffect(() => {
+    if (state.status === "error" && state.message) {
+      notify({ severity: "error", message: state.message });
+    }
+  }, [notify, state.message, state.status]);
+
   if (!member) {
     return null;
   }
@@ -214,9 +220,6 @@ function ChangeRoleDialog({
         <DialogTitle>Изменить роль участника</DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           <Stack spacing={2} mt={1}>
-            {state.status === "error" && state.message ? (
-              <Alert severity="error">{state.message}</Alert>
-            ) : null}
             <Box>
               <Typography fontWeight={600}>
                 {member.user.name ?? member.user.email ?? "Без имени"}
@@ -278,6 +281,7 @@ function RemoveMemberDialog({
   member,
 }: RemoveMemberDialogProps) {
   const [state, formAction, isPending] = useActionState(removeMemberAction, memberActionIdleState);
+  const notify = useNotification();
 
   useEffect(() => {
     if (state.status === "success") {
@@ -285,6 +289,12 @@ function RemoveMemberDialog({
       onClose();
     }
   }, [onClose, onSuccess, state.message, state.status]);
+
+  useEffect(() => {
+    if (state.status === "error" && state.message) {
+      notify({ severity: "error", message: state.message });
+    }
+  }, [notify, state.message, state.status]);
 
   if (!member) {
     return null;
@@ -300,9 +310,6 @@ function RemoveMemberDialog({
         <DialogTitle>Удалить участника</DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           <Stack spacing={2} mt={1}>
-            {state.status === "error" && state.message ? (
-              <Alert severity="error">{state.message}</Alert>
-            ) : null}
             <Typography>
               Удалить участника «{primaryText}» из рабочей области? Пользователь потеряет доступ ко
               всем комнатам и настройкам.
@@ -326,7 +333,7 @@ function RemoveMemberDialog({
 export default function MembersClient({ workspace, members, currentUser }: MembersClientProps) {
   const [changeTarget, setChangeTarget] = useState<SerializedMember | null>(null);
   const [removeTarget, setRemoveTarget] = useState<SerializedMember | null>(null);
-  const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const notify = useNotification();
 
   const sortedMembers = useMemo(() => {
     return [...members].sort((a, b) => {
@@ -348,9 +355,12 @@ export default function MembersClient({ workspace, members, currentUser }: Membe
     [members],
   );
 
-  const handleFeedback = (message: string, severity: "success" | "error" = "success") => {
-    setFeedback({ message, severity });
-  };
+  const handleFeedback = useCallback(
+    (message: string, severity: "success" | "error" = "success") => {
+      notify({ message, severity });
+    },
+    [notify],
+  );
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 } }}>
@@ -552,28 +562,6 @@ export default function MembersClient({ workspace, members, currentUser }: Membe
         workspaceId={workspace.id}
         member={removeTarget}
       />
-
-      {feedback ? (
-        <Box
-          sx={{
-            position: "fixed",
-            bottom: 24,
-            left: 0,
-            right: 0,
-            display: "flex",
-            justifyContent: "center",
-            pointerEvents: "none",
-          }}
-        >
-          <Alert
-            severity={feedback.severity}
-            sx={{ pointerEvents: "auto" }}
-            onClose={() => setFeedback(null)}
-          >
-            {feedback.message}
-          </Alert>
-        </Box>
-      ) : null}
     </Container>
   );
 }

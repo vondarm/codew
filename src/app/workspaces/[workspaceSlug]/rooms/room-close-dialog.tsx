@@ -2,7 +2,6 @@
 
 import { useActionState, useEffect } from "react";
 import {
-  Alert,
   Button,
   CircularProgress,
   Dialog,
@@ -16,6 +15,7 @@ import type { SerializedRoom } from "@/lib/services/room";
 
 import { closeRoomAction } from "./actions";
 import { roomActionIdleState } from "./room-action-state";
+import { useNotification } from "@/app/notification-provider";
 
 type RoomCloseDialogProps = {
   open: boolean;
@@ -33,6 +33,7 @@ export default function RoomCloseDialog({
   onSuccess,
 }: RoomCloseDialogProps) {
   const [state, formAction, isPending] = useActionState(closeRoomAction, roomActionIdleState);
+  const notify = useNotification();
 
   useEffect(() => {
     if (state.status === "success") {
@@ -40,6 +41,12 @@ export default function RoomCloseDialog({
       onClose();
     }
   }, [onClose, onSuccess, state.message, state.status]);
+
+  useEffect(() => {
+    if (state.status === "error" && state.message) {
+      notify({ severity: "error", message: state.message });
+    }
+  }, [notify, state.message, state.status]);
 
   const roomName = room?.name ?? "";
 
@@ -57,11 +64,6 @@ export default function RoomCloseDialog({
           <Typography color="text.secondary">
             Вы уверены, что хотите закрыть комнату «{roomName}»?
           </Typography>
-          {state.status === "error" && state.message ? (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {state.message}
-            </Alert>
-          ) : null}
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} disabled={isPending}>

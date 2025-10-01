@@ -3,9 +3,10 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useState } from "react";
 
-import { Alert, Button, Divider, Stack, TextField, Typography } from "@mui/material";
+import { Button, Divider, Stack, TextField, Typography } from "@mui/material";
 
 import { login } from "@/lib/auth-client";
+import { useNotification } from "@/app/notification-provider";
 
 type SignInFormProps = {
   callbackUrl: string;
@@ -16,12 +17,11 @@ export function SignInForm({ callbackUrl }: SignInFormProps) {
   const [loginValue, setLoginValue] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const notify = useNotification();
 
   const handleSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      setError(null);
       setIsSubmitting(true);
 
       try {
@@ -33,7 +33,7 @@ export function SignInForm({ callbackUrl }: SignInFormProps) {
         });
 
         if (!response || response.error || response.ok === false) {
-          setError("Неверный логин или пароль.");
+          notify({ severity: "error", message: "Неверный логин или пароль." });
           setIsSubmitting(false);
           return;
         }
@@ -43,11 +43,11 @@ export function SignInForm({ callbackUrl }: SignInFormProps) {
         router.refresh();
       } catch (submitError) {
         console.error("Failed to sign in with credentials", submitError);
-        setError("Не удалось выполнить вход. Попробуйте ещё раз.");
+        notify({ severity: "error", message: "Не удалось выполнить вход. Попробуйте ещё раз." });
         setIsSubmitting(false);
       }
     },
-    [callbackUrl, loginValue, password, router],
+    [callbackUrl, loginValue, notify, password, router],
   );
 
   const handleGoogleSignIn = useCallback(() => {
@@ -64,8 +64,6 @@ export function SignInForm({ callbackUrl }: SignInFormProps) {
           Укажите учётные данные, выданные вашей командой.
         </Typography>
       </Stack>
-
-      {error ? <Alert severity="error">{error}</Alert> : null}
 
       <Stack spacing={2}>
         <TextField

@@ -3,7 +3,6 @@
 import { type ReactNode, useActionState, useEffect, useMemo, useState } from "react";
 import type { TemplateLanguage } from "@prisma/client";
 import {
-  Alert,
   Button,
   CircularProgress,
   FormControl,
@@ -19,6 +18,7 @@ import type { SerializedTemplate } from "@/lib/services/template";
 
 import { createTemplateAction, updateTemplateAction } from "./actions";
 import { templateActionIdleState } from "./template-action-state";
+import { useNotification } from "@/app/notification-provider";
 
 export type TemplateFormMode = "create" | "edit";
 
@@ -59,6 +59,7 @@ export default function TemplateForm({
   );
 
   const [state, formAction, isPending] = useActionState(action, templateActionIdleState);
+  const notify = useNotification();
 
   useEffect(() => {
     onPendingChange?.(isPending);
@@ -86,14 +87,17 @@ export default function TemplateForm({
     }
   }, [mode, onSuccess, state.message, state.status]);
 
+  useEffect(() => {
+    if (state.status === "error" && state.message) {
+      notify({ severity: "error", message: state.message });
+    }
+  }, [notify, state.message, state.status]);
+
   const resolvedSubmitLabel = submitLabel ?? (mode === "create" ? "Создать" : "Сохранить");
   const resolvedCancelLabel = cancelLabel ?? "Отмена";
 
   const fields = (
     <Stack spacing={2} sx={{ mt: 1 }}>
-      {state.status === "error" && state.message ? (
-        <Alert severity="error">{state.message}</Alert>
-      ) : null}
       <TextField
         label="Название"
         name="name"
