@@ -11,7 +11,7 @@ type RoomOpenButtonProps = {
   workspaceId: string;
   roomId: string | null;
   onSuccess?: (result: RoomActionState) => void;
-  onError?: (result: RoomActionState | null, error?: unknown) => void;
+  onError?: (result: RoomActionState | null) => void;
   children: ReactNode;
 } & Omit<ButtonProps, "type" | "onClick">;
 
@@ -27,14 +27,7 @@ export default function RoomOpenButton({
     {},
     openRoomAction,
     roomActionIdleState,
-    {
-      onSuccess: (result) => {
-        onSuccess?.(result);
-      },
-      onError: (result, error) => {
-        onError?.(result, error);
-      },
-    },
+    { onSuccess, onError },
     {},
   );
 

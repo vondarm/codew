@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MemberRole, RoomStatus } from "@prisma/client";
 import {
@@ -32,7 +32,6 @@ import {
 } from "@/app/workspaces/[workspaceSlug]/rooms/room-utils";
 import { useRouter } from "next/navigation";
 import RoomOpenButton from "@/app/workspaces/[workspaceSlug]/rooms/room-open-button";
-import type { RoomActionState } from "@/app/workspaces/[workspaceSlug]/rooms/room-action-state";
 
 export type WorkspaceSummary = {
   id: string;
@@ -56,72 +55,30 @@ export default function RoomSettingsClient({
   const router = useRouter();
   const notify = useNotification();
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [closeRoomTarget, setCloseRoomTarget] = useState<SerializedRoom | null>(null);
-  const [slugRoomTarget, setSlugRoomTarget] = useState<SerializedRoom | null>(null);
-  const [currentRoom, setCurrentRoom] = useState(room);
+  const [isCloseRoomOpened, setIsCloseRoomOpened] = useState(false);
+  const [isSlugOpened, setIsSlugOpened] = useState(false);
 
-  useEffect(() => {
-    setCurrentRoom(room);
-  }, [room]);
+  const statusLabel = ROOM_STATUS_LABELS[room.status];
+  const statusColor = ROOM_STATUS_COLORS[room.status];
 
-  const statusLabel = ROOM_STATUS_LABELS[currentRoom.status];
-  const statusColor = ROOM_STATUS_COLORS[currentRoom.status];
+  const anonChips = [
+    { label: "Просмотр", enabled: room.allowAnonymousView },
+    { label: "Редактирование", enabled: room.allowAnonymousEdit },
+    { label: "Подключение", enabled: room.allowAnonymousJoin },
+  ];
 
-  const anonChips = useMemo(() => {
-    return [
-      { label: "Просмотр", enabled: currentRoom.allowAnonymousView },
-      { label: "Редактирование", enabled: currentRoom.allowAnonymousEdit },
-      { label: "Подключение", enabled: currentRoom.allowAnonymousJoin },
-    ];
-  }, [
-    currentRoom.allowAnonymousEdit,
-    currentRoom.allowAnonymousJoin,
-    currentRoom.allowAnonymousView,
-  ]);
-
-  const handleFeedback = useCallback(
-    (message: string, severity: "success" | "error" = "success") => {
-      notify({ message, severity });
-    },
-    [notify],
-  );
-
-  const handleActionSuccess = useCallback(
-    (result: RoomActionState) => {
-      if (result.message) {
-        handleFeedback(result.message);
-      }
-
-      if (result.room) {
-        setCurrentRoom(result.room);
-      }
-    },
-    [handleFeedback],
-  );
-
-  const handleActionError = useCallback(
-    (result: RoomActionState | null) => {
-      const message = result?.message ?? "Произошла ошибка. Попробуйте ещё раз.";
-      handleFeedback(message, "error");
-    },
-    [handleFeedback],
-  );
-
-  const onChangeSlug = (result: RoomActionState) => {
-    handleActionSuccess(result);
-
-    if (result.newSlug) {
-      router.replace(ROUTES.room(result.newSlug));
-    }
+  const onChangeSlug = (newSlug: string, message: string) => {
+    notify({ message });
+    router.replace(ROUTES.room(newSlug));
   };
 
   const handleCopyLink = async () => {
     try {
-      await copyRoomLink(currentRoom.slug);
-      handleFeedback("Ссылка скопирована.");
+      await copyRoomLink(room.slug);
+      notify({ message: "Ссылка скопирована." });
     } catch (error) {
       console.error(error);
-      handleFeedback("Не удалось скопировать ссылку.", "error");
+      notify({ message: "Не удалось скопировать ссылку.", severity: "error" });
     }
   };
 
@@ -140,29 +97,12 @@ export default function RoomSettingsClient({
     }
   }, [viewerRole]);
 
-  const openEditDialog = () => {
-    setIsEditOpen(true);
-  };
-
-  const closeEditDialog = () => {
-    setIsEditOpen(false);
-  };
-
-  const openCloseDialog = () => {
-    setCloseRoomTarget(currentRoom);
-  };
-
-  const closeCloseDialog = () => {
-    setCloseRoomTarget(null);
-  };
-
-  const openSlugDialog = () => {
-    setSlugRoomTarget(currentRoom);
-  };
-
-  const closeSlugDialog = () => {
-    setSlugRoomTarget(null);
-  };
+  const openEditDialog = () => setIsEditOpen(true);
+  const closeEditDialog = () => setIsEditOpen(false);
+  const openCloseRoomDialog = () => setIsCloseRoomOpened(true);
+  const closeCloseRoomDialog = () => setIsCloseRoomOpened(false);
+  const openSlugDialog = () => setIsSlugOpened(true);
+  const closeSlugDialog = () => setIsSlugOpened(false);
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 } }}>
@@ -175,7 +115,7 @@ export default function RoomSettingsClient({
         >
           <Box>
             <Typography component="h1" variant="h1" gutterBottom>
-              {currentRoom.name}
+              {room.name}
             </Typography>
             <Stack direction="row" spacing={1} alignItems="center">
               <Chip
@@ -185,7 +125,7 @@ export default function RoomSettingsClient({
                 variant={statusColor === "default" ? "outlined" : "filled"}
               />
               <Chip
-                label={`Обновлено ${formatRoomDate(currentRoom.updatedAt)}`}
+                label={`Обновлено ${formatRoomDate(room.updatedAt)}`}
                 variant="outlined"
                 size="small"
               />
@@ -227,7 +167,7 @@ export default function RoomSettingsClient({
                 <Typography variant="body2" color="text.secondary">
                   Slug:
                 </Typography>
-                <Chip label={currentRoom.slug} variant="outlined" size="small" />
+                <Chip label={room.slug} variant="outlined" size="small" />
               </Stack>
               <Stack direction="row" spacing={1} alignItems="center">
                 <Typography variant="body2" color="text.secondary">
@@ -244,10 +184,10 @@ export default function RoomSettingsClient({
                 ))}
               </Stack>
               <Typography variant="body2" color="text.secondary">
-                Создана: {formatRoomDate(currentRoom.createdAt)}
+                Создана: {formatRoomDate(room.createdAt)}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Закрыта: {formatRoomDate(currentRoom.closedAt)}
+                Закрыта: {formatRoomDate(room.closedAt)}
               </Typography>
               {canManage ? (
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
@@ -257,16 +197,14 @@ export default function RoomSettingsClient({
                   <Button
                     variant="outlined"
                     onClick={openSlugDialog}
-                    disabled={currentRoom.status !== RoomStatus.ACTIVE}
+                    disabled={room.status !== RoomStatus.ACTIVE}
                   >
                     Новая ссылка
                   </Button>
-                  {currentRoom.status === RoomStatus.CLOSED ? (
+                  {room.status === RoomStatus.CLOSED ? (
                     <RoomOpenButton
                       workspaceId={workspace.id}
-                      roomId={currentRoom.id}
-                      onSuccess={handleActionSuccess}
-                      onError={handleActionError}
+                      roomId={room.id}
                       variant="contained"
                       color="success"
                     >
@@ -276,8 +214,8 @@ export default function RoomSettingsClient({
                     <Button
                       variant="outlined"
                       color="error"
-                      onClick={openCloseDialog}
-                      disabled={currentRoom.status !== RoomStatus.ACTIVE}
+                      onClick={openCloseRoomDialog}
+                      disabled={room.status !== RoomStatus.ACTIVE}
                     >
                       Закрыть комнату
                     </Button>
@@ -291,12 +229,12 @@ export default function RoomSettingsClient({
         <Card variant="outlined">
           <CardHeader title="Заметки и код" subheader="Текст отображается участникам комнаты." />
           <CardContent>
-            {currentRoom.code ? (
+            {room.code ? (
               <Box
                 component="pre"
                 sx={{ bgcolor: "grey.50", p: 2, borderRadius: 2, overflowX: "auto" }}
               >
-                {currentRoom.code}
+                {room.code}
               </Box>
             ) : (
               <Typography color="text.secondary">Нет сохранённого содержимого.</Typography>
@@ -308,43 +246,28 @@ export default function RoomSettingsClient({
       <RoomFormDialog
         open={isEditOpen}
         workspaceId={workspace.id}
-        room={currentRoom}
+        room={room}
         onClose={closeEditDialog}
-        onSuccess={(result) => {
-          handleActionSuccess(result);
-        }}
-        onError={handleActionError}
+        onSuccess={(message) => notify({ message })}
         formTitle={"Обновить комнату"}
         formAction={updateRoomAction}
         submitLabel={"Сохранить"}
       />
 
       <RoomCloseDialog
-        open={Boolean(closeRoomTarget)}
+        open={isCloseRoomOpened}
         workspaceId={workspace.id}
-        room={closeRoomTarget}
-        onClose={closeCloseDialog}
-        onSuccess={(result) => {
-          handleActionSuccess(result);
-          setCloseRoomTarget(null);
-        }}
-        onError={(result) => {
-          handleActionError(result);
-        }}
+        room={room}
+        onClose={closeCloseRoomDialog}
+        onSuccess={(message) => notify({ message })}
       />
 
       <RoomSlugDialog
-        open={Boolean(slugRoomTarget)}
+        open={isSlugOpened}
         workspaceId={workspace.id}
-        room={slugRoomTarget}
+        room={room}
         onClose={closeSlugDialog}
-        onSuccess={(result) => {
-          onChangeSlug(result);
-          setSlugRoomTarget(null);
-        }}
-        onError={(result) => {
-          handleActionError(result);
-        }}
+        onSuccess={onChangeSlug}
       />
     </Container>
   );
