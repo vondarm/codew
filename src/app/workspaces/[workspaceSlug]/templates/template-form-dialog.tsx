@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import type { TemplateLanguage } from "@prisma/client";
 import { Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
 
@@ -27,12 +26,10 @@ export default function TemplateFormDialog({
   onClose,
   onSuccess,
 }: TemplateFormDialogProps) {
-  const [isPending, setIsPending] = useState(false);
-
   const dialogTitle = mode === "create" ? "Новый шаблон" : "Редактировать шаблон";
 
   return (
-    <Dialog open={open} onClose={isPending ? undefined : onClose} fullWidth maxWidth="md">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <TemplateForm
         mode={mode}
         workspaceId={workspaceId}
@@ -43,7 +40,6 @@ export default function TemplateFormDialog({
           onSuccess(message);
           onClose();
         }}
-        onPendingChange={setIsPending}
       >
         {({ fields, actions }) => (
           <>
