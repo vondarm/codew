@@ -113,7 +113,10 @@ export async function updateWorkspaceAction(
   }
 }
 
-export async function deleteWorkspaceAction(workspaceId: string): Promise<WorkspaceActionState> {
+export async function deleteWorkspaceAction(
+  _prevState: WorkspaceActionState,
+  workspaceId: string,
+): Promise<WorkspaceActionState> {
   const user = await getCurrentUser();
 
   if (!user) {

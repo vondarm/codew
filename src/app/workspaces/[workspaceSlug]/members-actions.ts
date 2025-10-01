@@ -143,7 +143,7 @@ export async function changeMemberRoleAction(
 
 export async function removeMemberAction(
   _prevState: MembersActionState,
-  formData: FormData,
+  { workspaceId, memberId }: { workspaceId: string; memberId: string },
 ): Promise<MembersActionState> {
   const user = await getCurrentUser();
 
@@ -151,19 +151,6 @@ export async function removeMemberAction(
     return {
       status: "error",
       message: "Требуется аутентификация.",
-    };
-  }
-
-  const workspaceIdValue = formData.get("workspaceId");
-  const memberIdValue = formData.get("memberId");
-
-  const workspaceId = typeof workspaceIdValue === "string" ? workspaceIdValue : "";
-  const memberId = typeof memberIdValue === "string" ? memberIdValue : "";
-
-  if (!workspaceId || !memberId) {
-    return {
-      status: "error",
-      message: "Недостаточно данных для удаления участника.",
     };
   }
 

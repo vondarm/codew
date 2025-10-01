@@ -93,7 +93,6 @@ export async function createRoomAction(
     return {
       status: "success",
       message: "Комната создана.",
-      room,
     };
   } catch (error) {
     return buildErrorState(error, "Не удалось создать комнату. Попробуйте ещё раз.");
@@ -152,7 +151,6 @@ export async function updateRoomAction(
     return {
       status: "success",
       message: "Настройки комнаты обновлены.",
-      room,
     };
   } catch (error) {
     return buildErrorState(error, "Не удалось обновить комнату.");
@@ -161,7 +159,7 @@ export async function updateRoomAction(
 
 export async function closeRoomAction(
   _prevState: RoomActionState,
-  formData: FormData,
+  { roomId, workspaceId }: { workspaceId: string; roomId: string },
 ): Promise<RoomActionState> {
   const user = await getCurrentUser();
 
@@ -169,19 +167,6 @@ export async function closeRoomAction(
     return {
       status: "error",
       message: "Требуется аутентификация.",
-    };
-  }
-
-  const workspaceIdValue = formData.get("workspaceId");
-  const roomIdValue = formData.get("roomId");
-
-  const workspaceId = typeof workspaceIdValue === "string" ? workspaceIdValue : "";
-  const roomId = typeof roomIdValue === "string" ? roomIdValue : "";
-
-  if (!workspaceId || !roomId) {
-    return {
-      status: "error",
-      message: "Недостаточно данных для закрытия комнаты.",
     };
   }
 
@@ -195,7 +180,6 @@ export async function closeRoomAction(
     return {
       status: "success",
       message: "Комната закрыта.",
-      room,
     };
   } catch (error) {
     return buildErrorState(error, "Не удалось закрыть комнату.");
@@ -204,7 +188,7 @@ export async function closeRoomAction(
 
 export async function openRoomAction(
   _prevState: RoomActionState,
-  formData: FormData,
+  { roomId, workspaceId }: { workspaceId: string; roomId: string },
 ): Promise<RoomActionState> {
   const user = await getCurrentUser();
 
@@ -212,19 +196,6 @@ export async function openRoomAction(
     return {
       status: "error",
       message: "Требуется аутентификация.",
-    };
-  }
-
-  const workspaceIdValue = formData.get("workspaceId");
-  const roomIdValue = formData.get("roomId");
-
-  const workspaceId = typeof workspaceIdValue === "string" ? workspaceIdValue : "";
-  const roomId = typeof roomIdValue === "string" ? roomIdValue : "";
-
-  if (!workspaceId || !roomId) {
-    return {
-      status: "error",
-      message: "Недостаточно данных для открытия комнаты.",
     };
   }
 
@@ -238,7 +209,6 @@ export async function openRoomAction(
     return {
       status: "success",
       message: "Комната открыта.",
-      room,
     };
   } catch (error) {
     return buildErrorState(error, "Не удалось открыть комнату.");
@@ -247,7 +217,11 @@ export async function openRoomAction(
 
 export async function regenerateRoomSlugAction(
   _prevState: RoomActionState,
-  formData: FormData,
+  {
+    roomId,
+    workspaceId,
+    previousSlug,
+  }: { workspaceId: string; roomId: string; previousSlug: string },
 ): Promise<RoomActionState> {
   const user = await getCurrentUser();
 
@@ -255,21 +229,6 @@ export async function regenerateRoomSlugAction(
     return {
       status: "error",
       message: "Требуется аутентификация.",
-    };
-  }
-
-  const workspaceIdValue = formData.get("workspaceId");
-  const roomIdValue = formData.get("roomId");
-  const previousSlugValue = formData.get("previousSlug");
-
-  const workspaceId = typeof workspaceIdValue === "string" ? workspaceIdValue : "";
-  const roomId = typeof roomIdValue === "string" ? roomIdValue : "";
-  const previousSlug = typeof previousSlugValue === "string" ? previousSlugValue : null;
-
-  if (!workspaceId || !roomId) {
-    return {
-      status: "error",
-      message: "Недостаточно данных для обновления ссылки.",
     };
   }
 
@@ -288,7 +247,6 @@ export async function regenerateRoomSlugAction(
       status: "success",
       newSlug: room.slug,
       message: "Ссылка на комнату обновлена.",
-      room,
     };
   } catch (error) {
     return buildErrorState(error, "Не удалось обновить ссылку на комнату.");

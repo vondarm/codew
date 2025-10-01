@@ -336,23 +336,27 @@ export default function RoomsClient({
         formTitle={"Обновить комнату"}
         submitLabel={"Сохранить"}
       />
-      <RoomCloseDialog
-        open={Boolean(closeRoomTarget)}
-        workspaceId={workspace.id}
-        room={closeRoomTarget}
-        onClose={closeCloseDialog}
-        onSuccess={(message) => {
-          notify({ message });
-          setCloseRoomTarget(null);
-        }}
-      />
-      <RoomSlugDialog
-        open={Boolean(slugRoomTarget)}
-        workspaceId={workspace.id}
-        room={slugRoomTarget}
-        onClose={closeSlugDialog}
-        onSuccess={(_, message) => notify({ message })}
-      />
+      {closeRoomTarget && (
+        <RoomCloseDialog
+          open={Boolean(closeRoomTarget)}
+          workspaceId={workspace.id}
+          room={closeRoomTarget}
+          onClose={closeCloseDialog}
+          onSuccess={(message) => {
+            notify({ message });
+            setCloseRoomTarget(null);
+          }}
+        />
+      )}
+      {slugRoomTarget && (
+        <RoomSlugDialog
+          open={Boolean(slugRoomTarget)}
+          workspaceId={workspace.id}
+          room={slugRoomTarget}
+          onClose={closeSlugDialog}
+          onSuccess={(_, message) => notify({ message })}
+        />
+      )}
     </Container>
   );
 }

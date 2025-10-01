@@ -35,11 +35,8 @@ export default function TemplateFormDialog({
         workspaceId={workspaceId}
         languages={languages}
         template={template}
-        onCancel={onClose}
-        onSuccess={(message) => {
-          onSuccess(message);
-          onClose();
-        }}
+        onClose={onClose}
+        onSuccess={onSuccess}
       >
         {({ fields, actions }) => (
           <>

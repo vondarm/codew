@@ -15,13 +15,14 @@ import {
 import type { SerializedTemplate } from "@/lib/services/template";
 
 import { deleteTemplateAction } from "./actions";
-import { templateActionIdleState, type TemplateActionState } from "./template-action-state";
-import { useForm } from "@/shared/forms";
+import { templateActionIdleState } from "./template-action-state";
+import { withHandlers } from "@/shared/forms";
+import { startTransition, useActionState } from "react";
 
 type TemplateDeleteDialogProps = {
   open: boolean;
   workspaceId: string;
-  template: SerializedTemplate | null;
+  template: SerializedTemplate;
   onClose: () => void;
   onSuccess: (message: string) => void;
 };
@@ -33,50 +34,46 @@ export default function TemplateDeleteDialog({
   onClose,
   onSuccess,
 }: TemplateDeleteDialogProps) {
-  const { action, state, isPending, reset } = useForm<Record<string, never>, TemplateActionState>(
-    {},
-    deleteTemplateAction,
-    templateActionIdleState,
-    {
-      onSuccess: () => {
-        onSuccess("Шаблон удалён.");
+  const [state, action, isPending] = useActionState(
+    withHandlers(deleteTemplateAction)({
+      onSuccess: ({ message }) => {
+        onSuccess(message || "");
         onClose();
       },
-    },
-    {},
+    }),
+    templateActionIdleState,
   );
 
-  const cancel = () => {
-    reset();
-    onClose();
-  };
+  const deleteTemplate = () =>
+    startTransition(() => action({ workspaceId, templateId: template?.id }));
 
   return (
-    <Dialog open={open} onClose={isPending ? undefined : cancel} fullWidth maxWidth="sm">
-      <form action={action}>
-        <input type="hidden" name="workspaceId" value={workspaceId} />
-        <input type="hidden" name="templateId" value={template?.id ?? ""} />
-        <DialogTitle>Удалить шаблон</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2} sx={{ pt: 1 }}>
-            {state.status === "error" && state.message ? (
-              <Alert severity="error">{state.message}</Alert>
-            ) : null}
-            <Typography>
-              Вы уверены, что хотите удалить шаблон <strong>{template?.name}</strong>? Действие
-              нельзя отменить.
-            </Typography>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={cancel} disabled={isPending}>
-            Отмена
-          </Button>
-          <Button type="submit" color="error" variant="contained" disabled={isPending || !template}>
-            {isPending ? <CircularProgress size={20} /> : "Удалить"}
-          </Button>
-        </DialogActions>
-      </form>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>Удалить шаблон</DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          {state.status === "error" && state.message ? (
+            <Alert severity="error">{state.message}</Alert>
+          ) : null}
+          <Typography>
+            Вы уверены, что хотите удалить шаблон <strong>{template?.name}</strong>? Действие нельзя
+            отменить.
+          </Typography>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} disabled={isPending}>
+          Отмена
+        </Button>
+        <Button
+          onClick={deleteTemplate}
+          color="error"
+          variant="contained"
+          disabled={isPending || !template}
+        >
+          {isPending ? <CircularProgress size={20} /> : "Удалить"}
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }

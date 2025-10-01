@@ -396,13 +396,8 @@ export default function TemplatesClient({
                 workspaceId={workspace.id}
                 languages={languageOptions}
                 template={selectedTemplate}
-                onCancel={() => {
-                  setDrawerMode("view");
-                }}
-                onSuccess={(message) => {
-                  handleFeedback(message, "success");
-                  setDrawerMode("view");
-                }}
+                onClose={() => setDrawerMode("view")}
+                onSuccess={(message) => handleFeedback(message, "success")}
               >
                 {({ fields, actions }) => (
                   <Stack sx={{ height: "100%" }}>
@@ -422,16 +417,17 @@ export default function TemplatesClient({
         workspaceId={workspace.id}
         languages={languageOptions}
         onClose={closeCreateDialog}
-        onSuccess={(message) => handleFeedback(message, "success")}
+        onSuccess={handleFeedback}
       />
-      <TemplateDeleteDialog
-        key={`delete}-${deleteTarget?.id}`}
-        open={Boolean(deleteTarget)}
-        workspaceId={workspace.id}
-        template={deleteTarget}
-        onClose={closeDeleteDialog}
-        onSuccess={(message) => handleFeedback(message, "success")}
-      />
+      {deleteTarget && (
+        <TemplateDeleteDialog
+          open={Boolean(deleteTarget)}
+          workspaceId={workspace.id}
+          template={deleteTarget}
+          onClose={closeDeleteDialog}
+          onSuccess={handleFeedback}
+        />
+      )}
     </Container>
   );
 }

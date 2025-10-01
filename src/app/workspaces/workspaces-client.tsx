@@ -1,7 +1,7 @@
 "use client";
 
-import type { ChangeEvent } from "react";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { ChangeEvent, useActionState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import type { MemberRole } from "@prisma/client";
 
 import {
@@ -37,7 +37,7 @@ import { logout } from "@/lib/auth-client";
 import { ROUTES } from "@/routes";
 import Link from "next/link";
 import { useNotification } from "@/app/notification-provider";
-import { useForm } from "@/shared/forms";
+import { useForm, withHandlers } from "@/shared/forms";
 
 type SerializedWorkspace = {
   id: string;
@@ -224,8 +224,6 @@ type EditWorkspaceDialogProps = WorkspaceFormProps & {
 };
 
 function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorkspaceDialogProps) {
-  const [slugLocked, setSlugLocked] = useState(true);
-
   const { formValue, set, action, state, isPending, reset } = useForm<
     WorkspaceFormValue,
     WorkspaceActionState
@@ -234,8 +232,8 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
     updateWorkspaceAction,
     idleState,
     {
-      onSuccess: () => {
-        onSuccess("Изменения сохранены.");
+      onSuccess: ({ message }) => {
+        onSuccess(message || "");
         onClose();
       },
     },
@@ -243,8 +241,8 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
   );
 
   const cancel = () => {
+    onClose();
     reset();
-    setSlugLocked(true);
   };
 
   if (!workspace) {
@@ -254,26 +252,10 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
   const handleNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     set("name")(value);
-
-    if (!slugLocked) {
-      const next = autoSlugFromName(value);
-
-      if (formValue.slug !== next) {
-        set("slug")(next);
-      }
-    }
   };
 
   const handleSlugChange = (event: ChangeEvent<HTMLInputElement>) => {
     const rawValue = event.target.value;
-
-    if (!rawValue.trim()) {
-      setSlugLocked(false);
-      set("slug")("");
-      return;
-    }
-
-    setSlugLocked(true);
     set("slug")(withSlugFallback(slugify(rawValue)));
   };
 
@@ -333,6 +315,7 @@ type DeleteWorkspaceDialogProps = {
   workspace: SerializedWorkspace | null;
   open: boolean;
   onClose: () => void;
+  onError: (message: string) => void;
   onSuccess: (message: string) => void;
 };
 
@@ -342,25 +325,17 @@ function DeleteWorkspaceDialog({
   onSuccess,
   workspace,
 }: DeleteWorkspaceDialogProps) {
-  const [isPending, startTransition] = useTransition();
-  const notify = useNotification();
+  const [, deleteAction, isPending] = useActionState(
+    withHandlers(deleteWorkspaceAction)({
+      onSuccess: ({ message }) => onSuccess(message || ""),
+      onError: ({ message }) => onSuccess(message || ""),
+    }),
+    idleState,
+  );
 
   if (!workspace) {
     return null;
   }
-
-  const handleConfirm = () => {
-    startTransition(async () => {
-      const result = await deleteWorkspaceAction(workspace.id);
-
-      if (result.status === "success") {
-        onSuccess("Рабочая область удалена.");
-        onClose();
-      } else if (result.message) {
-        notify({ severity: "error", message: result.message });
-      }
-    });
-  };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -378,7 +353,12 @@ function DeleteWorkspaceDialog({
         <Button onClick={onClose} disabled={isPending}>
           Отмена
         </Button>
-        <Button onClick={handleConfirm} color="error" variant="contained" disabled={isPending}>
+        <Button
+          onClick={() => deleteAction(workspace.id)}
+          color="error"
+          variant="contained"
+          disabled={isPending}
+        >
           {isPending ? <CircularProgress size={20} /> : "Удалить"}
         </Button>
       </DialogActions>
@@ -407,13 +387,6 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
       await logout({ callbackUrl: ROUTES.home });
     });
   };
-
-  const handleFeedback = useCallback(
-    (message: string) => {
-      notify({ message, severity: "success" });
-    },
-    [notify],
-  );
 
   const closeCreate = () => {
     setCreateOpen(false);
@@ -575,17 +548,22 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
         </Card>
       </Stack>
 
-      <CreateWorkspaceDialog open={createOpen} onClose={closeCreate} onSuccess={handleFeedback} />
+      <CreateWorkspaceDialog
+        open={createOpen}
+        onClose={closeCreate}
+        onSuccess={(message) => notify({ message, severity: "success" })}
+      />
       <EditWorkspaceDialog
         open={Boolean(editWorkspace)}
         onClose={closeEdit}
-        onSuccess={handleFeedback}
+        onSuccess={(message) => notify({ message, severity: "success" })}
         workspace={editWorkspace}
       />
       <DeleteWorkspaceDialog
         open={Boolean(deleteWorkspace)}
         onClose={closeDelete}
-        onSuccess={handleFeedback}
+        onSuccess={(message) => notify({ message, severity: "success" })}
+        onError={(message) => notify({ message, severity: "error" })}
         workspace={deleteWorkspace}
       />
     </Container>
