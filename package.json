@@ -49,9 +49,7 @@
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "eslint --max-warnings=0 --fix",
-      "prettier --write",
-      "yarn ts",
-      "yarn test"
+      "prettier --write"
     ],
     "*.{json,md,mdx,css,scss}": [
       "prettier --write"

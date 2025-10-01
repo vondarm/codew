@@ -77,7 +77,7 @@ export async function createRoomAction(
   }
 
   try {
-    const workspaceSlug = (await getWorkspace(user?.id, workspaceId)).slug;
+    const workspaceSlug = (await getWorkspace(workspaceId)).slug;
     const room = await createRoom(user.id, workspaceId, {
       name,
       code,
@@ -135,7 +135,7 @@ export async function updateRoomAction(
   }
 
   try {
-    const workspaceSlug = (await getWorkspace(user?.id, workspaceId)).slug;
+    const workspaceSlug = (await getWorkspace(workspaceId)).slug;
     const room = await updateRoom(user.id, roomId, {
       name,
       code,
@@ -183,7 +183,7 @@ export async function closeRoomAction(
   }
 
   try {
-    const workspaceSlug = (await getWorkspace(user?.id, workspaceId)).slug;
+    const workspaceSlug = (await getWorkspace(workspaceId)).slug;
     const room = await closeRoom(user.id, roomId);
 
     revalidatePath(ROUTES.workspaceRooms(workspaceSlug));
@@ -227,7 +227,7 @@ export async function regenerateRoomSlugAction(
   }
 
   try {
-    const workspaceSlug = (await getWorkspace(user?.id, workspaceId)).slug;
+    const workspaceSlug = (await getWorkspace(workspaceId)).slug;
     const room = await regenerateRoomSlug(user.id, roomId);
 
     revalidatePath(ROUTES.workspaceRooms(workspaceSlug));
