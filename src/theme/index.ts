@@ -12,23 +12,22 @@ declare module "@mui/material/styles" {
 
 const theme = createTheme({
   palette: {
-    mode: "light",
+    mode: "dark",
     primary: {
-      main: "#0051cb",
+      main: "#1976d2",
+    },
+    success: {
+      main: "#2e7d32",
+    },
+    info: {
+      main: "#0288d1",
     },
     secondary: {
-      main: "#ff6f61",
-    },
-    accent: {
-      main: "#00a99d",
-    },
-    background: {
-      default: "#f4f6fb",
-      paper: "#ffffff",
+      main: "#9c27b0",
     },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 4,
   },
   typography: {
     fontFamily: ["'Inter'", "'Roboto'", "system-ui", "-apple-system", "BlinkMacSystemFont"].join(

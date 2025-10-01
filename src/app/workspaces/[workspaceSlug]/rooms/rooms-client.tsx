@@ -23,11 +23,10 @@ import {
 import type { SerializedRoom } from "@/lib/services/room";
 import { ROUTES } from "@/routes";
 
-import { copyRoomLink, formatRoomDate, ROOM_STATUS_COLORS, ROOM_STATUS_LABELS } from "./room-utils";
+import { copyRoomLink, ROOM_STATUS_COLORS, ROOM_STATUS_LABELS } from "./room-utils";
 
 import RoomFormDialog from "./room-form-dialog";
 import RoomCloseDialog from "./room-close-dialog";
-import RoomSlugDialog from "./room-slug-dialog";
 import { useNotification } from "@/app/notification-provider";
 import { createRoomAction, updateRoomAction } from "@/app/workspaces/[workspaceSlug]/rooms/actions";
 
@@ -62,7 +61,6 @@ export default function RoomsClient({
   const [editRoomTarget, setEditRoomTarget] = useState<SerializedRoom | null>(null);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [closeRoomTarget, setCloseRoomTarget] = useState<SerializedRoom | null>(null);
-  const [slugRoomTarget, setSlugRoomTarget] = useState<SerializedRoom | null>(null);
 
   const sortedRooms = useMemo(() => {
     return [...rooms].sort(
@@ -94,20 +92,8 @@ export default function RoomsClient({
     setCloseRoomTarget(null);
   };
 
-  const openSlugDialog = (room: SerializedRoom) => {
-    setSlugRoomTarget(room);
-  };
-
-  const closeSlugDialog = () => {
-    setSlugRoomTarget(null);
-  };
-
   const handleFeedback = (message: string, severity: "success" | "error" = "success") =>
     notify({ message, severity });
-
-  const onSlugChange = () => {
-    handleFeedback("Ссылка обновлена.");
-  };
 
   const handleFormSuccess = (message: string) => {
     handleFeedback(message, "success");
@@ -225,7 +211,6 @@ export default function RoomsClient({
                     <TableCell>Статус</TableCell>
                     <TableCell>Анонимный доступ</TableCell>
                     <TableCell>Slug</TableCell>
-                    <TableCell>Обновлено</TableCell>
                     <TableCell align="right">Действия</TableCell>
                   </TableRow>
                 </TableHead>
@@ -239,9 +224,6 @@ export default function RoomsClient({
                         <TableCell>
                           <Stack spacing={0.5}>
                             <Typography fontWeight={600}>{room.name}</Typography>
-                            <Typography color="text.secondary" variant="body2">
-                              Создана {formatRoomDate(room.createdAt)}
-                            </Typography>
                           </Stack>
                         </TableCell>
                         <TableCell>
@@ -285,7 +267,6 @@ export default function RoomsClient({
                             </Button>
                           </Stack>
                         </TableCell>
-                        <TableCell>{formatRoomDate(room.updatedAt)}</TableCell>
                         <TableCell align="right">
                           <Stack direction="row" spacing={1} justifyContent="flex-end">
                             <Button
@@ -304,14 +285,6 @@ export default function RoomsClient({
                                   onClick={() => openEditDialog(room)}
                                 >
                                   Настроить
-                                </Button>
-                                <Button
-                                  size="small"
-                                  variant="text"
-                                  onClick={() => openSlugDialog(room)}
-                                  disabled={room.status !== RoomStatus.ACTIVE}
-                                >
-                                  Новая ссылка
                                 </Button>
                                 <Button
                                   size="small"
@@ -346,7 +319,6 @@ export default function RoomsClient({
         formTitle={"Создать комнату"}
         submitLabel={"Создать"}
       />
-
       <RoomFormDialog
         key={`editRoom-${editRoomTarget?.id}`}
         open={Boolean(editRoomTarget)}
@@ -358,21 +330,12 @@ export default function RoomsClient({
         formTitle={"Обновить комнату"}
         submitLabel={"Сохранить"}
       />
-
       <RoomCloseDialog
         open={Boolean(closeRoomTarget)}
         workspaceId={workspace.id}
         room={closeRoomTarget}
         onClose={closeCloseDialog}
         onSuccess={handleFeedback}
-      />
-
-      <RoomSlugDialog
-        open={Boolean(slugRoomTarget)}
-        workspaceId={workspace.id}
-        room={slugRoomTarget}
-        onClose={closeSlugDialog}
-        onSuccess={onSlugChange}
       />
     </Container>
   );
