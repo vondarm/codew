@@ -22,7 +22,7 @@ type RoomFormDialogProps = {
   workspaceId: string;
   room?: SerializedRoom | null;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (message: string) => void;
   formAction: (_prevState: RoomActionState, formData: FormData) => Promise<RoomActionState>;
   formTitle: string;
   submitLabel: string;
@@ -50,9 +50,11 @@ export default function RoomFormDialog({
     room,
     formAction,
     roomActionIdleState,
-    () => {
-      onSuccess();
-      onClose();
+    {
+      onSuccess: (state) => {
+        onSuccess(state.message || "");
+        onClose();
+      },
     },
     INITIAL_ROOM,
   );

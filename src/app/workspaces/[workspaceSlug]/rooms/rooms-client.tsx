@@ -27,6 +27,7 @@ import { copyRoomLink, ROOM_STATUS_COLORS, ROOM_STATUS_LABELS } from "./room-uti
 
 import RoomFormDialog from "./room-form-dialog";
 import RoomCloseDialog from "./room-close-dialog";
+import RoomOpenButton from "./room-open-button";
 import { useNotification } from "@/app/notification-provider";
 import { createRoomAction, updateRoomAction } from "@/app/workspaces/[workspaceSlug]/rooms/actions";
 
@@ -62,52 +63,27 @@ export default function RoomsClient({
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [closeRoomTarget, setCloseRoomTarget] = useState<SerializedRoom | null>(null);
 
-  const sortedRooms = useMemo(() => {
-    return [...rooms].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    );
-  }, [rooms]);
+  const sortedRooms = useMemo(
+    () =>
+      rooms.toSorted((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    [rooms],
+  );
 
   const openCreateDialog = () => {
     setIsCreatingRoom(true);
     setEditRoomTarget(null);
   };
-  const closeCreateDialog = () => {
-    setIsCreatingRoom(false);
-  };
-
-  const openEditDialog = (room: SerializedRoom) => {
-    setEditRoomTarget(room);
-  };
-
-  const closeEditDialog = () => {
-    setEditRoomTarget(null);
-  };
-
-  const openCloseDialog = (room: SerializedRoom) => {
-    setCloseRoomTarget(room);
-  };
-
-  const closeCloseDialog = () => {
-    setCloseRoomTarget(null);
-  };
-
-  const handleFeedback = (message: string, severity: "success" | "error" = "success") =>
-    notify({ message, severity });
-
-  const handleFormSuccess = (message: string) => {
-    handleFeedback(message, "success");
-    closeEditDialog();
-    closeCreateDialog();
-  };
+  const closeCreateDialog = () => setIsCreatingRoom(false);
+  const closeEditDialog = () => setEditRoomTarget(null);
+  const closeCloseDialog = () => setCloseRoomTarget(null);
 
   const handleCopyLink = async (room: SerializedRoom) => {
     try {
       await copyRoomLink(room.slug);
-      handleFeedback("Ссылка скопирована.");
+      notify({ message: "Ссылка скопирована." });
     } catch (error) {
       console.error(error);
-      handleFeedback("Не удалось скопировать ссылку.", "error");
+      notify({ message: "Не удалось скопировать ссылку.", severity: "error" });
     }
   };
 
@@ -282,19 +258,34 @@ export default function RoomsClient({
                                 <Button
                                   size="small"
                                   variant="text"
-                                  onClick={() => openEditDialog(room)}
+                                  onClick={() => setEditRoomTarget(room)}
                                 >
                                   Настроить
                                 </Button>
-                                <Button
-                                  size="small"
-                                  color="error"
-                                  variant="text"
-                                  onClick={() => openCloseDialog(room)}
-                                  disabled={room.status !== RoomStatus.ACTIVE}
-                                >
-                                  Закрыть
-                                </Button>
+                                {room.status === RoomStatus.CLOSED ? (
+                                  <RoomOpenButton
+                                    workspaceId={workspace.id}
+                                    roomId={room.id}
+                                    onSuccess={() =>
+                                      notify({ message: "Комната успешно открыта." })
+                                    }
+                                    size="small"
+                                    color="success"
+                                    variant="text"
+                                  >
+                                    Открыть
+                                  </RoomOpenButton>
+                                ) : (
+                                  <Button
+                                    size="small"
+                                    color="error"
+                                    variant="text"
+                                    onClick={() => setCloseRoomTarget(room)}
+                                    disabled={room.status !== RoomStatus.ACTIVE}
+                                  >
+                                    Закрыть
+                                  </Button>
+                                )}
                               </>
                             ) : null}
                           </Stack>
@@ -314,29 +305,33 @@ export default function RoomsClient({
         workspaceId={workspace.id}
         room={null}
         onClose={closeCreateDialog}
-        onSuccess={() => handleFormSuccess("Комната успешно создана")}
+        onSuccess={(message) => notify({ message })}
         formAction={createRoomAction}
         formTitle={"Создать комнату"}
         submitLabel={"Создать"}
       />
       <RoomFormDialog
-        key={`editRoom-${editRoomTarget?.id}`}
         open={Boolean(editRoomTarget)}
         workspaceId={workspace.id}
         room={editRoomTarget}
         onClose={closeEditDialog}
-        onSuccess={() => handleFormSuccess("Комната успешно изменена")}
+        onSuccess={(message) => notify({ message })}
         formAction={updateRoomAction}
         formTitle={"Обновить комнату"}
         submitLabel={"Сохранить"}
       />
-      <RoomCloseDialog
-        open={Boolean(closeRoomTarget)}
-        workspaceId={workspace.id}
-        room={closeRoomTarget}
-        onClose={closeCloseDialog}
-        onSuccess={handleFeedback}
-      />
+      {closeRoomTarget && (
+        <RoomCloseDialog
+          open={Boolean(closeRoomTarget)}
+          workspaceId={workspace.id}
+          room={closeRoomTarget}
+          onClose={closeCloseDialog}
+          onSuccess={(message) => {
+            notify({ message });
+            setCloseRoomTarget(null);
+          }}
+        />
+      )}
     </Container>
   );
 }

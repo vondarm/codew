@@ -81,6 +81,24 @@ export async function closeRoomRecord(
   });
 }
 
+export async function openRoomRecord(
+  id: string,
+  data?: Prisma.RoomUpdateArgs["data"],
+  client?: TransactionClient,
+): Promise<Room> {
+  const db = resolveClient(client);
+
+  return db.room.update({
+    where: { id },
+    data: {
+      ...(data ?? {}),
+      status: RoomStatus.ACTIVE,
+      closedAt: null,
+      archivedAt: data?.archivedAt ?? null,
+    },
+  });
+}
+
 export async function regenerateRoomSlug(
   id: string,
   slug: string,

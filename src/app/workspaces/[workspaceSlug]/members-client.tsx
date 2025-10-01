@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { startTransition, useActionState, useMemo, useState } from "react";
 import type { MemberRole } from "@prisma/client";
 import Link from "next/link";
 import {
@@ -36,8 +36,8 @@ import {
 import { inviteMemberAction, changeMemberRoleAction, removeMemberAction } from "./members-actions";
 import { ROUTES } from "@/routes";
 import { useNotification } from "@/app/notification-provider";
-import { useForm } from "@/shared/forms";
-import { memberActionIdleState, MembersActionState } from "./members-action-state";
+import { useForm, withHandlers } from "@/shared/forms";
+import { memberActionIdleState } from "./members-action-state";
 
 const ROLE_LABELS: Record<MemberRole, string> = {
   ADMIN: "Администратор",
@@ -115,7 +115,7 @@ function InviteMemberForm({
     null,
     inviteMemberAction,
     memberActionIdleState,
-    () => onSuccess("Пользователь добавлен в рабочую область."),
+    { onSuccess: ({ message }) => onSuccess(message || "") },
     INITIAL_INVITE_FORM,
   );
 
@@ -194,9 +194,11 @@ function ChangeRoleDialog({
     member ? { role: member.role } : null,
     changeMemberRoleAction,
     memberActionIdleState,
-    () => {
-      onSuccess("Роль обновлена.");
-      onClose();
+    {
+      onSuccess: ({ message }) => {
+        onSuccess(message || "");
+        onClose();
+      },
     },
     INITIAL_CHANGE_ROLE_FORM,
   );
@@ -274,16 +276,6 @@ type RemoveMemberDialogProps = {
   member: SerializedMember | null;
 };
 
-type RemoveMemberFormValue = {
-  workspaceId: string;
-  memberId: string;
-};
-
-const INITIAL_REMOVE_MEMBER_FORM: RemoveMemberFormValue = {
-  workspaceId: "",
-  memberId: "",
-};
-
 function RemoveMemberDialog({
   open,
   onClose,
@@ -291,62 +283,47 @@ function RemoveMemberDialog({
   workspaceId,
   member,
 }: RemoveMemberDialogProps) {
-  const initialData: Partial<RemoveMemberFormValue> | null = member
-    ? { workspaceId, memberId: member.id }
-    : { workspaceId };
-
-  const { action, state, isPending, reset, formValue } = useForm<
-    RemoveMemberFormValue,
-    MembersActionState
-  >(
-    initialData,
-    removeMemberAction,
+  const [state, action, isPending] = useActionState(
+    withHandlers(removeMemberAction)({
+      onSuccess: (state) => {
+        onSuccess(state.message || "");
+        onClose();
+      },
+    }),
     memberActionIdleState,
-    () => {
-      onSuccess("Участник удалён.");
-      onClose();
-    },
-    INITIAL_REMOVE_MEMBER_FORM,
   );
 
   if (!member) {
     return null;
   }
 
-  const cancel = () => {
-    reset();
-    onClose();
-  };
+  const deleteMember = () => startTransition(() => action({ workspaceId, memberId: member.id }));
 
   const primaryText = member.user.name ?? member.user.email ?? "Без имени";
 
   return (
-    <Dialog open={open} onClose={cancel} fullWidth maxWidth="sm">
-      <form action={action}>
-        <input type="hidden" name="workspaceId" value={formValue.workspaceId} />
-        <input type="hidden" name="memberId" value={formValue.memberId} />
-        <DialogTitle>Удалить участника</DialogTitle>
-        <DialogContent sx={{ pt: 1 }}>
-          <Stack spacing={2} mt={1}>
-            {state.status === "error" && state.message ? (
-              <Alert severity="error">{state.message}</Alert>
-            ) : null}
-            <Typography>
-              Удалить участника «{primaryText}» из рабочей области? Пользователь потеряет доступ ко
-              всем комнатам и настройкам.
-            </Typography>
-            {member.user.email ? <Chip label={member.user.email} variant="outlined" /> : null}
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={cancel} disabled={isPending}>
-            Отмена
-          </Button>
-          <Button type="submit" color="error" variant="contained" disabled={isPending}>
-            {isPending ? <CircularProgress size={20} /> : "Удалить"}
-          </Button>
-        </DialogActions>
-      </form>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>Удалить участника</DialogTitle>
+      <DialogContent sx={{ pt: 1 }}>
+        <Stack spacing={2} mt={1}>
+          {state.status === "error" && state.message ? (
+            <Alert severity="error">{state.message}</Alert>
+          ) : null}
+          <Typography>
+            Удалить участника «{primaryText}» из рабочей области? Пользователь потеряет доступ ко
+            всем комнатам и настройкам.
+          </Typography>
+          {member.user.email ? <Chip label={member.user.email} variant="outlined" /> : null}
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button onClick={onClose} disabled={isPending}>
+          Отмена
+        </Button>
+        <Button onClick={deleteMember} color="error" variant="contained" disabled={isPending}>
+          {isPending ? <CircularProgress size={20} /> : "Удалить"}
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }

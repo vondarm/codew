@@ -1,7 +1,7 @@
 "use client";
 
-import type { ChangeEvent } from "react";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { ChangeEvent, startTransition, useActionState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import type { MemberRole } from "@prisma/client";
 
 import {
@@ -37,7 +37,7 @@ import { logout } from "@/lib/auth-client";
 import { ROUTES } from "@/routes";
 import Link from "next/link";
 import { useNotification } from "@/app/notification-provider";
-import { useForm } from "@/shared/forms";
+import { useForm, withHandlers } from "@/shared/forms";
 
 type SerializedWorkspace = {
   id: string;
@@ -128,10 +128,12 @@ function CreateWorkspaceDialog({ open, onClose, onSuccess }: WorkspaceFormProps)
     null,
     createWorkspaceAction,
     idleState,
-    () => {
-      onSuccess("Рабочая область создана.");
-      onClose();
-      setSlugLocked(false);
+    {
+      onSuccess: () => {
+        onSuccess("Рабочая область создана.");
+        onClose();
+        setSlugLocked(false);
+      },
     },
     INITIAL_WORKSPACE,
   );
@@ -229,16 +231,18 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
     workspace,
     updateWorkspaceAction,
     idleState,
-    () => {
-      onSuccess("Изменения сохранены.");
-      onClose();
+    {
+      onSuccess: ({ message }) => {
+        onSuccess(message || "");
+        onClose();
+      },
     },
     INITIAL_WORKSPACE,
   );
 
   const cancel = () => {
-    reset();
     onClose();
+    reset();
   };
 
   if (!workspace) {
@@ -252,11 +256,6 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
 
   const handleSlugChange = (event: ChangeEvent<HTMLInputElement>) => {
     const rawValue = event.target.value;
-
-    if (!rawValue.trim()) {
-      set("slug")("");
-      return;
-    }
     set("slug")(withSlugFallback(slugify(rawValue)));
   };
 
@@ -316,6 +315,7 @@ type DeleteWorkspaceDialogProps = {
   workspace: SerializedWorkspace | null;
   open: boolean;
   onClose: () => void;
+  onError: (message: string) => void;
   onSuccess: (message: string) => void;
 };
 
@@ -325,25 +325,22 @@ function DeleteWorkspaceDialog({
   onSuccess,
   workspace,
 }: DeleteWorkspaceDialogProps) {
-  const [isPending, startTransition] = useTransition();
-  const notify = useNotification();
+  const [, deleteAction, isPending] = useActionState(
+    withHandlers(deleteWorkspaceAction)({
+      onSuccess: ({ message }) => {
+        onSuccess(message || "");
+        onClose();
+      },
+      onError: ({ message }) => onSuccess(message || ""),
+    }),
+    idleState,
+  );
 
   if (!workspace) {
     return null;
   }
 
-  const handleConfirm = () => {
-    startTransition(async () => {
-      const result = await deleteWorkspaceAction(workspace.id);
-
-      if (result.status === "success") {
-        onSuccess("Рабочая область удалена.");
-        onClose();
-      } else if (result.message) {
-        notify({ severity: "error", message: result.message });
-      }
-    });
-  };
+  const deleteWorkspace = () => startTransition(() => deleteAction(workspace.id));
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -361,7 +358,7 @@ function DeleteWorkspaceDialog({
         <Button onClick={onClose} disabled={isPending}>
           Отмена
         </Button>
-        <Button onClick={handleConfirm} color="error" variant="contained" disabled={isPending}>
+        <Button onClick={deleteWorkspace} color="error" variant="contained" disabled={isPending}>
           {isPending ? <CircularProgress size={20} /> : "Удалить"}
         </Button>
       </DialogActions>
@@ -377,7 +374,7 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
   const [isLogoutPending, startLogout] = useTransition();
 
   const sortedWorkspaces = useMemo(
-    () => [...workspaces].sort((a, b) => a.name.localeCompare(b.name, "ru")),
+    () => workspaces.toSorted((a, b) => a.name.localeCompare(b.name, "ru")),
     [workspaces],
   );
 
@@ -390,13 +387,6 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
       await logout({ callbackUrl: ROUTES.home });
     });
   };
-
-  const handleFeedback = useCallback(
-    (message: string) => {
-      notify({ message, severity: "success" });
-    },
-    [notify],
-  );
 
   const closeCreate = () => {
     setCreateOpen(false);
@@ -558,17 +548,22 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
         </Card>
       </Stack>
 
-      <CreateWorkspaceDialog open={createOpen} onClose={closeCreate} onSuccess={handleFeedback} />
+      <CreateWorkspaceDialog
+        open={createOpen}
+        onClose={closeCreate}
+        onSuccess={(message) => notify({ message, severity: "success" })}
+      />
       <EditWorkspaceDialog
         open={Boolean(editWorkspace)}
         onClose={closeEdit}
-        onSuccess={handleFeedback}
+        onSuccess={(message) => notify({ message, severity: "success" })}
         workspace={editWorkspace}
       />
       <DeleteWorkspaceDialog
         open={Boolean(deleteWorkspace)}
         onClose={closeDelete}
-        onSuccess={handleFeedback}
+        onSuccess={(message) => notify({ message, severity: "success" })}
+        onError={(message) => notify({ message, severity: "error" })}
         workspace={deleteWorkspace}
       />
     </Container>

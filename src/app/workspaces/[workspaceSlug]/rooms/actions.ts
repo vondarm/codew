@@ -7,6 +7,7 @@ import {
   RoomError,
   closeRoom,
   createRoom,
+  openRoom,
   regenerateRoomSlug,
   updateRoom,
 } from "@/lib/services/room";
@@ -158,7 +159,7 @@ export async function updateRoomAction(
 
 export async function closeRoomAction(
   _prevState: RoomActionState,
-  formData: FormData,
+  { roomId, workspaceId }: { workspaceId: string; roomId: string },
 ): Promise<RoomActionState> {
   const user = await getCurrentUser();
 
@@ -166,19 +167,6 @@ export async function closeRoomAction(
     return {
       status: "error",
       message: "Требуется аутентификация.",
-    };
-  }
-
-  const workspaceIdValue = formData.get("workspaceId");
-  const roomIdValue = formData.get("roomId");
-
-  const workspaceId = typeof workspaceIdValue === "string" ? workspaceIdValue : "";
-  const roomId = typeof roomIdValue === "string" ? roomIdValue : "";
-
-  if (!workspaceId || !roomId) {
-    return {
-      status: "error",
-      message: "Недостаточно данных для закрытия комнаты.",
     };
   }
 
@@ -198,9 +186,9 @@ export async function closeRoomAction(
   }
 }
 
-export async function regenerateRoomSlugAction(
+export async function openRoomAction(
   _prevState: RoomActionState,
-  formData: FormData,
+  { roomId, workspaceId }: { workspaceId: string; roomId: string },
 ): Promise<RoomActionState> {
   const user = await getCurrentUser();
 
@@ -211,18 +199,36 @@ export async function regenerateRoomSlugAction(
     };
   }
 
-  const workspaceIdValue = formData.get("workspaceId");
-  const roomIdValue = formData.get("roomId");
-  const previousSlugValue = formData.get("previousSlug");
+  try {
+    const workspaceSlug = (await getWorkspace(workspaceId)).slug;
+    const room = await openRoom(user.id, roomId);
 
-  const workspaceId = typeof workspaceIdValue === "string" ? workspaceIdValue : "";
-  const roomId = typeof roomIdValue === "string" ? roomIdValue : "";
-  const previousSlug = typeof previousSlugValue === "string" ? previousSlugValue : null;
+    revalidatePath(ROUTES.workspaceRooms(workspaceSlug));
+    revalidatePath(ROUTES.room(room.slug));
 
-  if (!workspaceId || !roomId) {
+    return {
+      status: "success",
+      message: "Комната открыта.",
+    };
+  } catch (error) {
+    return buildErrorState(error, "Не удалось открыть комнату.");
+  }
+}
+
+export async function regenerateRoomSlugAction(
+  _prevState: RoomActionState,
+  {
+    roomId,
+    workspaceId,
+    previousSlug,
+  }: { workspaceId: string; roomId: string; previousSlug: string },
+): Promise<RoomActionState> {
+  const user = await getCurrentUser();
+
+  if (!user) {
     return {
       status: "error",
-      message: "Недостаточно данных для обновления ссылки.",
+      message: "Требуется аутентификация.",
     };
   }
 

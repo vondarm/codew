@@ -34,7 +34,7 @@ type TemplateFormProps = {
   workspaceId: string;
   languages: TemplateLanguage[];
   template?: SerializedTemplate | null;
-  onCancel?: () => void;
+  onClose: () => void;
   onSuccess: (message: string) => void;
   submitLabel?: string;
   cancelLabel?: string;
@@ -62,7 +62,7 @@ export default function TemplateForm({
   workspaceId,
   languages,
   template,
-  onCancel,
+  onClose,
   onSuccess,
   submitLabel,
   cancelLabel,
@@ -84,16 +84,18 @@ export default function TemplateForm({
     template,
     action,
     templateActionIdleState,
-    () => {
-      const message = mode === "create" ? "Шаблон создан." : "Шаблон обновлён.";
-      onSuccess(message);
+    {
+      onSuccess: ({ message }) => {
+        onSuccess(message || "");
+        onClose();
+      },
     },
     BASE_TEMPLATE,
   );
 
   const cancel = () => {
     reset();
-    onCancel?.();
+    onClose();
   };
 
   const resolvedSubmitLabel = submitLabel ?? (mode === "create" ? "Создать" : "Сохранить");

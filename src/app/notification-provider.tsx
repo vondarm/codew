@@ -53,7 +53,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     (input: NotificationInput) => {
       nextId.current += 1;
       const id = nextId.current.toString();
-      const severity = input.severity ?? "info";
+      const severity = input.severity ?? "success";
       const duration = input.duration ?? DEFAULT_DURATION;
 
       setNotifications((current) => [...current, { id, message: input.message, severity }]);

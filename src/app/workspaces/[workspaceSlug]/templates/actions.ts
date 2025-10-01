@@ -178,7 +178,7 @@ export async function updateTemplateAction(
 
 export async function deleteTemplateAction(
   _prevState: TemplateActionState,
-  formData: FormData,
+  { workspaceId, templateId }: { workspaceId: string; templateId: string },
 ): Promise<TemplateActionState> {
   const user = await getCurrentUser();
 
@@ -186,19 +186,6 @@ export async function deleteTemplateAction(
     return {
       status: "error",
       message: "Требуется аутентификация.",
-    };
-  }
-
-  const workspaceIdValue = formData.get("workspaceId");
-  const templateIdValue = formData.get("templateId");
-
-  const workspaceId = typeof workspaceIdValue === "string" ? workspaceIdValue : "";
-  const templateId = typeof templateIdValue === "string" ? templateIdValue : "";
-
-  if (!workspaceId || !templateId) {
-    return {
-      status: "error",
-      message: "Недостаточно данных для удаления шаблона.",
     };
   }
 

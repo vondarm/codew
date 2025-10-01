@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MemberRole, RoomStatus } from "@prisma/client";
 import {
@@ -31,6 +31,7 @@ import {
   ROOM_STATUS_LABELS,
 } from "@/app/workspaces/[workspaceSlug]/rooms/room-utils";
 import { useRouter } from "next/navigation";
+import RoomOpenButton from "@/app/workspaces/[workspaceSlug]/rooms/room-open-button";
 
 export type WorkspaceSummary = {
   id: string;
@@ -54,39 +55,30 @@ export default function RoomSettingsClient({
   const router = useRouter();
   const notify = useNotification();
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [closeRoomTarget, setCloseRoomTarget] = useState<SerializedRoom | null>(null);
-  const [slugRoomTarget, setSlugRoomTarget] = useState<SerializedRoom | null>(null);
+  const [isCloseRoomOpened, setIsCloseRoomOpened] = useState(false);
+  const [isSlugOpened, setIsSlugOpened] = useState(false);
 
   const statusLabel = ROOM_STATUS_LABELS[room.status];
   const statusColor = ROOM_STATUS_COLORS[room.status];
 
-  const anonChips = useMemo(() => {
-    return [
-      { label: "Просмотр", enabled: room.allowAnonymousView },
-      { label: "Редактирование", enabled: room.allowAnonymousEdit },
-      { label: "Подключение", enabled: room.allowAnonymousJoin },
-    ];
-  }, [room.allowAnonymousEdit, room.allowAnonymousJoin, room.allowAnonymousView]);
+  const anonChips = [
+    { label: "Просмотр", enabled: room.allowAnonymousView },
+    { label: "Редактирование", enabled: room.allowAnonymousEdit },
+    { label: "Подключение", enabled: room.allowAnonymousJoin },
+  ];
 
-  const handleFeedback = useCallback(
-    (message: string, severity: "success" | "error" = "success") => {
-      notify({ message, severity });
-    },
-    [notify],
-  );
-
-  const onChangeSlug = (newSlug: string) => {
-    handleFeedback("Ссылка обновлена.");
+  const onChangeSlug = (newSlug: string, message: string) => {
+    notify({ message });
     router.replace(ROUTES.room(newSlug));
   };
 
   const handleCopyLink = async () => {
     try {
       await copyRoomLink(room.slug);
-      handleFeedback("Ссылка скопирована.");
+      notify({ message: "Ссылка скопирована." });
     } catch (error) {
       console.error(error);
-      handleFeedback("Не удалось скопировать ссылку.", "error");
+      notify({ message: "Не удалось скопировать ссылку.", severity: "error" });
     }
   };
 
@@ -105,29 +97,12 @@ export default function RoomSettingsClient({
     }
   }, [viewerRole]);
 
-  const openEditDialog = () => {
-    setIsEditOpen(true);
-  };
-
-  const closeEditDialog = () => {
-    setIsEditOpen(false);
-  };
-
-  const openCloseDialog = () => {
-    setCloseRoomTarget(room);
-  };
-
-  const closeCloseDialog = () => {
-    setCloseRoomTarget(null);
-  };
-
-  const openSlugDialog = () => {
-    setSlugRoomTarget(room);
-  };
-
-  const closeSlugDialog = () => {
-    setSlugRoomTarget(null);
-  };
+  const openEditDialog = () => setIsEditOpen(true);
+  const closeEditDialog = () => setIsEditOpen(false);
+  const openCloseRoomDialog = () => setIsCloseRoomOpened(true);
+  const closeCloseRoomDialog = () => setIsCloseRoomOpened(false);
+  const openSlugDialog = () => setIsSlugOpened(true);
+  const closeSlugDialog = () => setIsSlugOpened(false);
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 } }}>
@@ -226,14 +201,25 @@ export default function RoomSettingsClient({
                   >
                     Новая ссылка
                   </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={openCloseDialog}
-                    disabled={room.status !== RoomStatus.ACTIVE}
-                  >
-                    Закрыть комнату
-                  </Button>
+                  {room.status === RoomStatus.CLOSED ? (
+                    <RoomOpenButton
+                      workspaceId={workspace.id}
+                      roomId={room.id}
+                      variant="contained"
+                      color="success"
+                    >
+                      Открыть комнату
+                    </RoomOpenButton>
+                  ) : (
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={openCloseRoomDialog}
+                      disabled={room.status !== RoomStatus.ACTIVE}
+                    >
+                      Закрыть комнату
+                    </Button>
+                  )}
                 </Stack>
               ) : null}
             </Stack>
@@ -262,27 +248,24 @@ export default function RoomSettingsClient({
         workspaceId={workspace.id}
         room={room}
         onClose={closeEditDialog}
-        onSuccess={() => {
-          handleFeedback("Комната успешно обновлена");
-          closeEditDialog();
-        }}
+        onSuccess={(message) => notify({ message })}
         formTitle={"Обновить комнату"}
         formAction={updateRoomAction}
         submitLabel={"Сохранить"}
       />
 
       <RoomCloseDialog
-        open={Boolean(closeRoomTarget)}
+        open={isCloseRoomOpened}
         workspaceId={workspace.id}
-        room={closeRoomTarget}
-        onClose={closeCloseDialog}
-        onSuccess={handleFeedback}
+        room={room}
+        onClose={closeCloseRoomDialog}
+        onSuccess={(message) => notify({ message })}
       />
 
       <RoomSlugDialog
-        open={Boolean(slugRoomTarget)}
+        open={isSlugOpened}
         workspaceId={workspace.id}
-        room={slugRoomTarget}
+        room={room}
         onClose={closeSlugDialog}
         onSuccess={onChangeSlug}
       />

@@ -1,27 +1,50 @@
 import { useActionState, useState } from "react";
 
-const withHandlers =
-  <Args extends Array<unknown>, R>(action: (...args: Args) => Promise<R>) =>
-  (onSuccess?: (data: R) => void) =>
-  (...args: Args): Promise<R> => {
-    return action(...args).then((data) => {
-      onSuccess?.(data);
+type HandlerOptions<R> = {
+  onSuccess?: (data: R) => void;
+  onError?: (data: R) => void;
+};
+
+type WithStatus = { status: "success" | "error" | "idle" };
+
+export const withHandlers =
+  <Args extends Array<unknown>, R extends WithStatus>(action: (...args: Args) => Promise<R>) =>
+  (handlers?: HandlerOptions<R>) =>
+  async (...args: Args): Promise<R> => {
+    try {
+      const data = await action(...args);
+      if (data.status === "success") {
+        handlers?.onSuccess?.(data);
+      }
+      if (data.status === "error") {
+        handlers?.onError?.(data);
+      }
       return data;
-    });
+    } catch (error) {
+      throw error;
+    }
   };
 
-export const useForm = <T extends object, ActionState extends object>(
+export const useForm = <T extends object, ActionState extends WithStatus>(
   current: Partial<T> | null | undefined,
   action: (prevState: Awaited<ActionState>, data: FormData) => Promise<ActionState>,
   initialActionState: Awaited<ActionState>,
-  onSuccess: (data: ActionState) => void,
+  handlers: {
+    onSuccess?: (data: ActionState) => void;
+    onError?: (data: ActionState | null) => void;
+  },
   initialFormValue: T,
 ) => {
   const [localFormData, setLocalFormData] = useState<Partial<T>>({});
   const [state, formAction, isPending] = useActionState(
-    withHandlers(action)((data) => {
-      onSuccess(data);
-      setLocalFormData({});
+    withHandlers(action)({
+      onSuccess: (data) => {
+        handlers.onSuccess?.(data);
+        setLocalFormData({});
+      },
+      onError: (data) => {
+        handlers.onError?.(data);
+      },
     }),
     initialActionState,
   );
