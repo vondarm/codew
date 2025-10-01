@@ -7,6 +7,7 @@ import {
   RoomError,
   closeRoom,
   createRoom,
+  openRoom,
   regenerateRoomSlug,
   updateRoom,
 } from "@/lib/services/room";
@@ -92,6 +93,7 @@ export async function createRoomAction(
     return {
       status: "success",
       message: "Комната создана.",
+      room,
     };
   } catch (error) {
     return buildErrorState(error, "Не удалось создать комнату. Попробуйте ещё раз.");
@@ -150,6 +152,7 @@ export async function updateRoomAction(
     return {
       status: "success",
       message: "Настройки комнаты обновлены.",
+      room,
     };
   } catch (error) {
     return buildErrorState(error, "Не удалось обновить комнату.");
@@ -192,9 +195,53 @@ export async function closeRoomAction(
     return {
       status: "success",
       message: "Комната закрыта.",
+      room,
     };
   } catch (error) {
     return buildErrorState(error, "Не удалось закрыть комнату.");
+  }
+}
+
+export async function openRoomAction(
+  _prevState: RoomActionState,
+  formData: FormData,
+): Promise<RoomActionState> {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return {
+      status: "error",
+      message: "Требуется аутентификация.",
+    };
+  }
+
+  const workspaceIdValue = formData.get("workspaceId");
+  const roomIdValue = formData.get("roomId");
+
+  const workspaceId = typeof workspaceIdValue === "string" ? workspaceIdValue : "";
+  const roomId = typeof roomIdValue === "string" ? roomIdValue : "";
+
+  if (!workspaceId || !roomId) {
+    return {
+      status: "error",
+      message: "Недостаточно данных для открытия комнаты.",
+    };
+  }
+
+  try {
+    const workspaceSlug = (await getWorkspace(workspaceId)).slug;
+    const room = await openRoom(user.id, roomId);
+
+    revalidatePath(ROUTES.workspaceRooms(workspaceSlug));
+    revalidatePath(ROUTES.room(room.slug));
+
+    return {
+      status: "success",
+      message: "Комната открыта.",
+      room,
+    };
+  } catch (error) {
+    return buildErrorState(error, "Не удалось открыть комнату.");
   }
 }
 
@@ -241,6 +288,7 @@ export async function regenerateRoomSlugAction(
       status: "success",
       newSlug: room.slug,
       message: "Ссылка на комнату обновлена.",
+      room,
     };
   } catch (error) {
     return buildErrorState(error, "Не удалось обновить ссылку на комнату.");

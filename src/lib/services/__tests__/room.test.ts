@@ -16,6 +16,7 @@ vi.mock("@/lib/prisma/room", () => ({
   findRoomById: vi.fn(),
   findRoomBySlug: vi.fn(),
   findRoomsByWorkspace: vi.fn(),
+  openRoomRecord: vi.fn(),
   regenerateRoomSlug: vi.fn(),
   updateRoomRecord: vi.fn(),
 }));
@@ -42,6 +43,7 @@ import {
   generateUniqueSlug,
   getRoom,
   listRoomsForWorkspace,
+  openRoom,
   regenerateRoomSlug,
   updateRoom,
   RoomError,
@@ -118,6 +120,7 @@ beforeEach(() => {
   mockedRoomRepo.createRoomRecord.mockResolvedValue(baseRoom);
   mockedRoomRepo.updateRoomRecord.mockResolvedValue(baseRoom);
   mockedRoomRepo.closeRoomRecord.mockResolvedValue({ ...baseRoom, status: RoomStatus.CLOSED });
+  mockedRoomRepo.openRoomRecord.mockResolvedValue({ ...baseRoom, status: RoomStatus.ACTIVE });
   mockedRoomRepo.regenerateRoomSlug.mockResolvedValue({ ...baseRoom, slug: `${baseRoom.slug}-2` });
 });
 
@@ -260,6 +263,25 @@ describe("RoomService", () => {
     expect(mockedRoomRepo.closeRoomRecord).toHaveBeenCalledWith(baseRoom.id, {
       allowAnonymousEdit: false,
       allowAnonymousJoin: false,
+    });
+  });
+
+  it("opens closed room", async () => {
+    mockedMemberRepo.findMemberByWorkspaceAndUserId.mockResolvedValue(editorMembership);
+    mockedRoomRepo.findRoomById.mockResolvedValue({ ...baseRoom, status: RoomStatus.CLOSED });
+    mockedRoomRepo.openRoomRecord.mockResolvedValue({
+      ...baseRoom,
+      status: RoomStatus.ACTIVE,
+      closedAt: null,
+      archivedAt: null,
+    });
+
+    const opened = await openRoom(editorMembership.userId, baseRoom.id);
+
+    expect(opened.status).toBe(RoomStatus.ACTIVE);
+    expect(mockedRoomRepo.openRoomRecord).toHaveBeenCalledWith(baseRoom.id, {
+      allowAnonymousJoin: baseRoom.allowAnonymousJoin,
+      allowAnonymousEdit: baseRoom.allowAnonymousEdit,
     });
   });
 

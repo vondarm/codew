@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { MemberRole, RoomStatus } from "@prisma/client";
 import {
@@ -31,6 +31,8 @@ import {
   ROOM_STATUS_LABELS,
 } from "@/app/workspaces/[workspaceSlug]/rooms/room-utils";
 import { useRouter } from "next/navigation";
+import RoomOpenButton from "@/app/workspaces/[workspaceSlug]/rooms/room-open-button";
+import type { RoomActionState } from "@/app/workspaces/[workspaceSlug]/rooms/room-action-state";
 
 export type WorkspaceSummary = {
   id: string;
@@ -56,17 +58,26 @@ export default function RoomSettingsClient({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [closeRoomTarget, setCloseRoomTarget] = useState<SerializedRoom | null>(null);
   const [slugRoomTarget, setSlugRoomTarget] = useState<SerializedRoom | null>(null);
+  const [currentRoom, setCurrentRoom] = useState(room);
 
-  const statusLabel = ROOM_STATUS_LABELS[room.status];
-  const statusColor = ROOM_STATUS_COLORS[room.status];
+  useEffect(() => {
+    setCurrentRoom(room);
+  }, [room]);
+
+  const statusLabel = ROOM_STATUS_LABELS[currentRoom.status];
+  const statusColor = ROOM_STATUS_COLORS[currentRoom.status];
 
   const anonChips = useMemo(() => {
     return [
-      { label: "Просмотр", enabled: room.allowAnonymousView },
-      { label: "Редактирование", enabled: room.allowAnonymousEdit },
-      { label: "Подключение", enabled: room.allowAnonymousJoin },
+      { label: "Просмотр", enabled: currentRoom.allowAnonymousView },
+      { label: "Редактирование", enabled: currentRoom.allowAnonymousEdit },
+      { label: "Подключение", enabled: currentRoom.allowAnonymousJoin },
     ];
-  }, [room.allowAnonymousEdit, room.allowAnonymousJoin, room.allowAnonymousView]);
+  }, [
+    currentRoom.allowAnonymousEdit,
+    currentRoom.allowAnonymousJoin,
+    currentRoom.allowAnonymousView,
+  ]);
 
   const handleFeedback = useCallback(
     (message: string, severity: "success" | "error" = "success") => {
@@ -75,14 +86,38 @@ export default function RoomSettingsClient({
     [notify],
   );
 
-  const onChangeSlug = (newSlug: string) => {
-    handleFeedback("Ссылка обновлена.");
-    router.replace(ROUTES.room(newSlug));
+  const handleActionSuccess = useCallback(
+    (result: RoomActionState) => {
+      if (result.message) {
+        handleFeedback(result.message);
+      }
+
+      if (result.room) {
+        setCurrentRoom(result.room);
+      }
+    },
+    [handleFeedback],
+  );
+
+  const handleActionError = useCallback(
+    (result: RoomActionState | null) => {
+      const message = result?.message ?? "Произошла ошибка. Попробуйте ещё раз.";
+      handleFeedback(message, "error");
+    },
+    [handleFeedback],
+  );
+
+  const onChangeSlug = (result: RoomActionState) => {
+    handleActionSuccess(result);
+
+    if (result.newSlug) {
+      router.replace(ROUTES.room(result.newSlug));
+    }
   };
 
   const handleCopyLink = async () => {
     try {
-      await copyRoomLink(room.slug);
+      await copyRoomLink(currentRoom.slug);
       handleFeedback("Ссылка скопирована.");
     } catch (error) {
       console.error(error);
@@ -114,7 +149,7 @@ export default function RoomSettingsClient({
   };
 
   const openCloseDialog = () => {
-    setCloseRoomTarget(room);
+    setCloseRoomTarget(currentRoom);
   };
 
   const closeCloseDialog = () => {
@@ -122,7 +157,7 @@ export default function RoomSettingsClient({
   };
 
   const openSlugDialog = () => {
-    setSlugRoomTarget(room);
+    setSlugRoomTarget(currentRoom);
   };
 
   const closeSlugDialog = () => {
@@ -140,7 +175,7 @@ export default function RoomSettingsClient({
         >
           <Box>
             <Typography component="h1" variant="h1" gutterBottom>
-              {room.name}
+              {currentRoom.name}
             </Typography>
             <Stack direction="row" spacing={1} alignItems="center">
               <Chip
@@ -150,7 +185,7 @@ export default function RoomSettingsClient({
                 variant={statusColor === "default" ? "outlined" : "filled"}
               />
               <Chip
-                label={`Обновлено ${formatRoomDate(room.updatedAt)}`}
+                label={`Обновлено ${formatRoomDate(currentRoom.updatedAt)}`}
                 variant="outlined"
                 size="small"
               />
@@ -192,7 +227,7 @@ export default function RoomSettingsClient({
                 <Typography variant="body2" color="text.secondary">
                   Slug:
                 </Typography>
-                <Chip label={room.slug} variant="outlined" size="small" />
+                <Chip label={currentRoom.slug} variant="outlined" size="small" />
               </Stack>
               <Stack direction="row" spacing={1} alignItems="center">
                 <Typography variant="body2" color="text.secondary">
@@ -209,10 +244,10 @@ export default function RoomSettingsClient({
                 ))}
               </Stack>
               <Typography variant="body2" color="text.secondary">
-                Создана: {formatRoomDate(room.createdAt)}
+                Создана: {formatRoomDate(currentRoom.createdAt)}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Закрыта: {formatRoomDate(room.closedAt)}
+                Закрыта: {formatRoomDate(currentRoom.closedAt)}
               </Typography>
               {canManage ? (
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
@@ -222,18 +257,31 @@ export default function RoomSettingsClient({
                   <Button
                     variant="outlined"
                     onClick={openSlugDialog}
-                    disabled={room.status !== RoomStatus.ACTIVE}
+                    disabled={currentRoom.status !== RoomStatus.ACTIVE}
                   >
                     Новая ссылка
                   </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={openCloseDialog}
-                    disabled={room.status !== RoomStatus.ACTIVE}
-                  >
-                    Закрыть комнату
-                  </Button>
+                  {currentRoom.status === RoomStatus.CLOSED ? (
+                    <RoomOpenButton
+                      workspaceId={workspace.id}
+                      roomId={currentRoom.id}
+                      onSuccess={handleActionSuccess}
+                      onError={handleActionError}
+                      variant="contained"
+                      color="success"
+                    >
+                      Открыть комнату
+                    </RoomOpenButton>
+                  ) : (
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={openCloseDialog}
+                      disabled={currentRoom.status !== RoomStatus.ACTIVE}
+                    >
+                      Закрыть комнату
+                    </Button>
+                  )}
                 </Stack>
               ) : null}
             </Stack>
@@ -243,12 +291,12 @@ export default function RoomSettingsClient({
         <Card variant="outlined">
           <CardHeader title="Заметки и код" subheader="Текст отображается участникам комнаты." />
           <CardContent>
-            {room.code ? (
+            {currentRoom.code ? (
               <Box
                 component="pre"
                 sx={{ bgcolor: "grey.50", p: 2, borderRadius: 2, overflowX: "auto" }}
               >
-                {room.code}
+                {currentRoom.code}
               </Box>
             ) : (
               <Typography color="text.secondary">Нет сохранённого содержимого.</Typography>
@@ -260,12 +308,12 @@ export default function RoomSettingsClient({
       <RoomFormDialog
         open={isEditOpen}
         workspaceId={workspace.id}
-        room={room}
+        room={currentRoom}
         onClose={closeEditDialog}
-        onSuccess={() => {
-          handleFeedback("Комната успешно обновлена");
-          closeEditDialog();
+        onSuccess={(result) => {
+          handleActionSuccess(result);
         }}
+        onError={handleActionError}
         formTitle={"Обновить комнату"}
         formAction={updateRoomAction}
         submitLabel={"Сохранить"}
@@ -276,7 +324,13 @@ export default function RoomSettingsClient({
         workspaceId={workspace.id}
         room={closeRoomTarget}
         onClose={closeCloseDialog}
-        onSuccess={handleFeedback}
+        onSuccess={(result) => {
+          handleActionSuccess(result);
+          setCloseRoomTarget(null);
+        }}
+        onError={(result) => {
+          handleActionError(result);
+        }}
       />
 
       <RoomSlugDialog
@@ -284,7 +338,13 @@ export default function RoomSettingsClient({
         workspaceId={workspace.id}
         room={slugRoomTarget}
         onClose={closeSlugDialog}
-        onSuccess={onChangeSlug}
+        onSuccess={(result) => {
+          onChangeSlug(result);
+          setSlugRoomTarget(null);
+        }}
+        onError={(result) => {
+          handleActionError(result);
+        }}
       />
     </Container>
   );

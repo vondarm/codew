@@ -37,9 +37,11 @@ export default function TemplateDeleteDialog({
     {},
     deleteTemplateAction,
     templateActionIdleState,
-    () => {
-      onSuccess("Шаблон удалён.");
-      onClose();
+    {
+      onSuccess: () => {
+        onSuccess("Шаблон удалён.");
+        onClose();
+      },
     },
     {},
   );

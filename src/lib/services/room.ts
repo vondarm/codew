@@ -6,6 +6,7 @@ import {
   findRoomById,
   findRoomBySlug,
   findRoomsByWorkspace,
+  openRoomRecord,
   regenerateRoomSlug as regenerateRoomSlugRecord,
   updateRoomRecord,
 } from "@/lib/prisma/room";
@@ -392,6 +393,29 @@ export async function closeRoom(userId: string, roomId: string): Promise<Seriali
     const room = await closeRoomRecord(access.room.id, {
       allowAnonymousEdit: false,
       allowAnonymousJoin: false,
+    });
+
+    return serializeRoomForClient(room);
+  } catch (error) {
+    throw mapPrismaError(error);
+  }
+}
+
+export async function openRoom(userId: string, roomId: string): Promise<SerializedRoom> {
+  const access = await ensureRoomAccess(roomId, userId);
+
+  if (access.role === MemberRole.VIEWER) {
+    throw new RoomError("Недостаточно прав для открытия комнаты.", "FORBIDDEN");
+  }
+
+  if (access.room.status === RoomStatus.ACTIVE) {
+    throw new RoomError("Комната уже открыта.", "FORBIDDEN");
+  }
+
+  try {
+    const room = await openRoomRecord(access.room.id, {
+      allowAnonymousJoin: access.room.allowAnonymousJoin,
+      allowAnonymousEdit: access.room.allowAnonymousEdit,
     });
 
     return serializeRoomForClient(room);

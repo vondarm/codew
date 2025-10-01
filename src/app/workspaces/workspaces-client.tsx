@@ -128,10 +128,12 @@ function CreateWorkspaceDialog({ open, onClose, onSuccess }: WorkspaceFormProps)
     null,
     createWorkspaceAction,
     idleState,
-    () => {
-      onSuccess("Рабочая область создана.");
-      onClose();
-      setSlugLocked(false);
+    {
+      onSuccess: () => {
+        onSuccess("Рабочая область создана.");
+        onClose();
+        setSlugLocked(false);
+      },
     },
     INITIAL_WORKSPACE,
   );
@@ -231,9 +233,11 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
     workspace,
     updateWorkspaceAction,
     idleState,
-    () => {
-      onSuccess("Изменения сохранены.");
-      onClose();
+    {
+      onSuccess: () => {
+        onSuccess("Изменения сохранены.");
+        onClose();
+      },
     },
     INITIAL_WORKSPACE,
   );

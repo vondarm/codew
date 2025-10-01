@@ -115,7 +115,9 @@ function InviteMemberForm({
     null,
     inviteMemberAction,
     memberActionIdleState,
-    () => onSuccess("Пользователь добавлен в рабочую область."),
+    {
+      onSuccess: () => onSuccess("Пользователь добавлен в рабочую область."),
+    },
     INITIAL_INVITE_FORM,
   );
 
@@ -194,9 +196,11 @@ function ChangeRoleDialog({
     member ? { role: member.role } : null,
     changeMemberRoleAction,
     memberActionIdleState,
-    () => {
-      onSuccess("Роль обновлена.");
-      onClose();
+    {
+      onSuccess: () => {
+        onSuccess("Роль обновлена.");
+        onClose();
+      },
     },
     INITIAL_CHANGE_ROLE_FORM,
   );
@@ -302,9 +306,11 @@ function RemoveMemberDialog({
     initialData,
     removeMemberAction,
     memberActionIdleState,
-    () => {
-      onSuccess("Участник удалён.");
-      onClose();
+    {
+      onSuccess: () => {
+        onSuccess("Участник удалён.");
+        onClose();
+      },
     },
     INITIAL_REMOVE_MEMBER_FORM,
   );

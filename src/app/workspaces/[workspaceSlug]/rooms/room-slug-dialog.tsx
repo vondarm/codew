@@ -14,7 +14,7 @@ import {
 import type { SerializedRoom } from "@/lib/services/room";
 
 import { regenerateRoomSlugAction } from "./actions";
-import { roomActionIdleState } from "./room-action-state";
+import { roomActionIdleState, type RoomActionState } from "./room-action-state";
 import { useForm } from "@/shared/forms";
 
 type RoomSlugDialogProps = {
@@ -22,7 +22,8 @@ type RoomSlugDialogProps = {
   workspaceId: string;
   room: SerializedRoom | null;
   onClose: () => void;
-  onSuccess: (newSlug: string) => void;
+  onSuccess: (result: RoomActionState) => void;
+  onError?: (result: RoomActionState | null, error?: unknown) => void;
 };
 
 type RoomSlugFormValue = {
@@ -43,6 +44,7 @@ export default function RoomSlugDialog({
   room,
   onClose,
   onSuccess,
+  onError,
 }: RoomSlugDialogProps) {
   const currentValue: Partial<RoomSlugFormValue> | null = room
     ? { workspaceId, roomId: room.id, previousSlug: room.slug }
@@ -52,9 +54,14 @@ export default function RoomSlugDialog({
     currentValue,
     regenerateRoomSlugAction,
     roomActionIdleState,
-    (data) => {
-      onClose();
-      if (data.newSlug) onSuccess(data.newSlug);
+    {
+      onSuccess: (data) => {
+        onClose();
+        onSuccess(data);
+      },
+      onError: (data, error) => {
+        onError?.(data, error);
+      },
     },
     INITIAL_ROOM_SLUG_FORM,
   );

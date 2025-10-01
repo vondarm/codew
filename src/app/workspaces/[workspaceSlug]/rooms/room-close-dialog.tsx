@@ -22,7 +22,8 @@ type RoomCloseDialogProps = {
   workspaceId: string;
   room: SerializedRoom | null;
   onClose: () => void;
-  onSuccess: (message: string) => void;
+  onSuccess: (result: RoomActionState) => void;
+  onError?: (result: RoomActionState | null, error?: unknown) => void;
 };
 
 export default function RoomCloseDialog({
@@ -31,14 +32,20 @@ export default function RoomCloseDialog({
   room,
   onClose,
   onSuccess,
+  onError,
 }: RoomCloseDialogProps) {
   const { action, state, isPending, reset } = useForm<Record<string, never>, RoomActionState>(
     {},
     closeRoomAction,
     roomActionIdleState,
-    () => {
-      onSuccess("Комната закрыта.");
-      onClose();
+    {
+      onSuccess: (result) => {
+        onSuccess(result);
+        onClose();
+      },
+      onError: (result, error) => {
+        onError?.(result, error);
+      },
     },
     {},
   );

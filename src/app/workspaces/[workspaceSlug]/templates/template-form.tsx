@@ -84,9 +84,11 @@ export default function TemplateForm({
     template,
     action,
     templateActionIdleState,
-    () => {
-      const message = mode === "create" ? "Шаблон создан." : "Шаблон обновлён.";
-      onSuccess(message);
+    {
+      onSuccess: () => {
+        const message = mode === "create" ? "Шаблон создан." : "Шаблон обновлён.";
+        onSuccess(message);
+      },
     },
     BASE_TEMPLATE,
   );

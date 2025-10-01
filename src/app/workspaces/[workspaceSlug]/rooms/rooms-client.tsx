@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { MemberRole, RoomStatus } from "@prisma/client";
 import {
@@ -27,9 +27,11 @@ import { copyRoomLink, formatRoomDate, ROOM_STATUS_COLORS, ROOM_STATUS_LABELS } 
 
 import RoomFormDialog from "./room-form-dialog";
 import RoomCloseDialog from "./room-close-dialog";
+import RoomOpenButton from "./room-open-button";
 import RoomSlugDialog from "./room-slug-dialog";
 import { useNotification } from "@/app/notification-provider";
 import { createRoomAction, updateRoomAction } from "@/app/workspaces/[workspaceSlug]/rooms/actions";
+import type { RoomActionState } from "./room-action-state";
 
 type WorkspaceSummary = {
   id: string;
@@ -63,12 +65,17 @@ export default function RoomsClient({
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [closeRoomTarget, setCloseRoomTarget] = useState<SerializedRoom | null>(null);
   const [slugRoomTarget, setSlugRoomTarget] = useState<SerializedRoom | null>(null);
+  const [roomList, setRoomList] = useState<SerializedRoom[]>(rooms);
+
+  useEffect(() => {
+    setRoomList(rooms);
+  }, [rooms]);
 
   const sortedRooms = useMemo(() => {
-    return [...rooms].sort(
+    return [...roomList].sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
-  }, [rooms]);
+  }, [roomList]);
 
   const openCreateDialog = () => {
     setIsCreatingRoom(true);
@@ -102,18 +109,45 @@ export default function RoomsClient({
     setSlugRoomTarget(null);
   };
 
-  const handleFeedback = (message: string, severity: "success" | "error" = "success") =>
-    notify({ message, severity });
+  const handleFeedback = useCallback(
+    (message: string, severity: "success" | "error" = "success") => notify({ message, severity }),
+    [notify],
+  );
 
-  const onSlugChange = () => {
-    handleFeedback("Ссылка обновлена.");
-  };
+  const updateRoomList = useCallback((updatedRoom: SerializedRoom) => {
+    setRoomList((prev) => {
+      const index = prev.findIndex((item) => item.id === updatedRoom.id);
 
-  const handleFormSuccess = (message: string) => {
-    handleFeedback(message, "success");
-    closeEditDialog();
-    closeCreateDialog();
-  };
+      if (index === -1) {
+        return [updatedRoom, ...prev];
+      }
+
+      const next = [...prev];
+      next[index] = updatedRoom;
+      return next;
+    });
+  }, []);
+
+  const handleActionSuccess = useCallback(
+    (result: RoomActionState) => {
+      if (result.message) {
+        handleFeedback(result.message, "success");
+      }
+
+      if (result.room) {
+        updateRoomList(result.room);
+      }
+    },
+    [handleFeedback, updateRoomList],
+  );
+
+  const handleActionError = useCallback(
+    (result: RoomActionState | null) => {
+      const message = result?.message ?? "Произошла ошибка. Попробуйте ещё раз.";
+      handleFeedback(message, "error");
+    },
+    [handleFeedback],
+  );
 
   const handleCopyLink = async (room: SerializedRoom) => {
     try {
@@ -313,15 +347,29 @@ export default function RoomsClient({
                                 >
                                   Новая ссылка
                                 </Button>
-                                <Button
-                                  size="small"
-                                  color="error"
-                                  variant="text"
-                                  onClick={() => openCloseDialog(room)}
-                                  disabled={room.status !== RoomStatus.ACTIVE}
-                                >
-                                  Закрыть
-                                </Button>
+                                {room.status === RoomStatus.CLOSED ? (
+                                  <RoomOpenButton
+                                    workspaceId={workspace.id}
+                                    roomId={room.id}
+                                    onSuccess={handleActionSuccess}
+                                    onError={handleActionError}
+                                    size="small"
+                                    color="success"
+                                    variant="text"
+                                  >
+                                    Открыть
+                                  </RoomOpenButton>
+                                ) : (
+                                  <Button
+                                    size="small"
+                                    color="error"
+                                    variant="text"
+                                    onClick={() => openCloseDialog(room)}
+                                    disabled={room.status !== RoomStatus.ACTIVE}
+                                  >
+                                    Закрыть
+                                  </Button>
+                                )}
                               </>
                             ) : null}
                           </Stack>
@@ -341,7 +389,10 @@ export default function RoomsClient({
         workspaceId={workspace.id}
         room={null}
         onClose={closeCreateDialog}
-        onSuccess={() => handleFormSuccess("Комната успешно создана")}
+        onSuccess={(result) => {
+          handleActionSuccess(result);
+        }}
+        onError={handleActionError}
         formAction={createRoomAction}
         formTitle={"Создать комнату"}
         submitLabel={"Создать"}
@@ -353,7 +404,10 @@ export default function RoomsClient({
         workspaceId={workspace.id}
         room={editRoomTarget}
         onClose={closeEditDialog}
-        onSuccess={() => handleFormSuccess("Комната успешно изменена")}
+        onSuccess={(result) => {
+          handleActionSuccess(result);
+        }}
+        onError={handleActionError}
         formAction={updateRoomAction}
         formTitle={"Обновить комнату"}
         submitLabel={"Сохранить"}
@@ -364,7 +418,11 @@ export default function RoomsClient({
         workspaceId={workspace.id}
         room={closeRoomTarget}
         onClose={closeCloseDialog}
-        onSuccess={handleFeedback}
+        onSuccess={(result) => {
+          handleActionSuccess(result);
+          setCloseRoomTarget(null);
+        }}
+        onError={handleActionError}
       />
 
       <RoomSlugDialog
@@ -372,7 +430,10 @@ export default function RoomsClient({
         workspaceId={workspace.id}
         room={slugRoomTarget}
         onClose={closeSlugDialog}
-        onSuccess={onSlugChange}
+        onSuccess={(result) => {
+          handleActionSuccess(result);
+        }}
+        onError={handleActionError}
       />
     </Container>
   );
