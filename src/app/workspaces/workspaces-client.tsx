@@ -372,9 +372,6 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
   const [editWorkspace, setEditWorkspace] = useState<SerializedWorkspace | null>(null);
   const [deleteWorkspace, setDeleteWorkspace] = useState<SerializedWorkspace | null>(null);
   const notify = useNotification();
-  const [createKey, setCreateKey] = useState(0);
-  const [editKey, setEditKey] = useState(0);
-  const [deleteKey, setDeleteKey] = useState(0);
   const [isLogoutPending, startLogout] = useTransition();
 
   const sortedWorkspaces = useMemo(
@@ -401,17 +398,14 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
 
   const closeCreate = () => {
     setCreateOpen(false);
-    setCreateKey((value) => value + 1);
   };
 
   const closeEdit = () => {
     setEditWorkspace(null);
-    setEditKey((value) => value + 1);
   };
 
   const closeDelete = () => {
     setDeleteWorkspace(null);
-    setDeleteKey((value) => value + 1);
   };
 
   return (
@@ -562,21 +556,14 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
         </Card>
       </Stack>
 
-      <CreateWorkspaceDialog
-        key={createKey}
-        open={createOpen}
-        onClose={closeCreate}
-        onSuccess={handleFeedback}
-      />
+      <CreateWorkspaceDialog open={createOpen} onClose={closeCreate} onSuccess={handleFeedback} />
       <EditWorkspaceDialog
-        key={`${editKey}-${editWorkspace?.id ?? "none"}`}
         open={Boolean(editWorkspace)}
         onClose={closeEdit}
         onSuccess={handleFeedback}
         workspace={editWorkspace}
       />
       <DeleteWorkspaceDialog
-        key={`${deleteKey}-${deleteWorkspace?.id ?? "none"}`}
         open={Boolean(deleteWorkspace)}
         onClose={closeDelete}
         onSuccess={handleFeedback}
