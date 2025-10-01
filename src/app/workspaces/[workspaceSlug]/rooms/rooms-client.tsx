@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MemberRole, RoomStatus } from "@prisma/client";
 import {
@@ -127,12 +127,8 @@ export default function RoomsClient({
     setSlugRoomTarget(null);
   };
 
-  const handleFeedback = useCallback(
-    (message: string, severity: "success" | "error" = "success") => {
-      notify({ message, severity });
-    },
-    [notify],
-  );
+  const handleFeedback = (message: string, severity: "success" | "error" = "success") =>
+    notify({ message, severity });
 
   const handleFormSuccess = (message: string) => {
     handleFeedback(message, "success");

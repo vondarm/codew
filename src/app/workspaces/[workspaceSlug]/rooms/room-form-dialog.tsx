@@ -14,8 +14,6 @@ import {
 } from "@mui/material";
 
 import type { SerializedRoom } from "@/lib/services/room";
-// import { useNotification } from "@/app/notification-provider";
-
 import { roomActionIdleState, RoomActionState } from "./room-action-state";
 import { useForm } from "@/shared/forms";
 
@@ -55,8 +53,6 @@ export default function RoomFormDialog({
     onSuccess,
     INITIAL_ROOM,
   );
-
-  // const notify = useNotification();
 
   return (
     <Dialog open={open} onClose={isPending ? undefined : onClose} fullWidth maxWidth="md">
