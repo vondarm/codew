@@ -2,10 +2,10 @@ import { useActionState, useState } from "react";
 
 const withHandlers =
   <Args extends Array<unknown>, R>(action: (...args: Args) => Promise<R>) =>
-  (onSuccess?: () => void) =>
+  (onSuccess?: (data: R) => void) =>
   (...args: Args): Promise<R> => {
     return action(...args).then((data) => {
-      onSuccess?.();
+      onSuccess?.(data);
       return data;
     });
   };
@@ -14,13 +14,13 @@ export const useForm = <T extends object, ActionState extends object>(
   current: Partial<T> | null | undefined,
   action: (prevState: Awaited<ActionState>, data: FormData) => Promise<ActionState>,
   initialActionState: Awaited<ActionState>,
-  onSuccess: () => void,
+  onSuccess: (data: ActionState) => void,
   initialFormValue: T,
 ) => {
   const [localFormData, setLocalFormData] = useState<Partial<T>>({});
   const [state, formAction, isPending] = useActionState(
-    withHandlers(action)(() => {
-      onSuccess();
+    withHandlers(action)((data) => {
+      onSuccess(data);
       setLocalFormData({});
     }),
     initialActionState,

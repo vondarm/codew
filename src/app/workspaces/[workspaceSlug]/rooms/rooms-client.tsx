@@ -105,6 +105,10 @@ export default function RoomsClient({
   const handleFeedback = (message: string, severity: "success" | "error" = "success") =>
     notify({ message, severity });
 
+  const onSlugChange = () => {
+    handleFeedback("Ссылка обновлена.");
+  };
+
   const handleFormSuccess = (message: string) => {
     handleFeedback(message, "success");
     closeEditDialog();
@@ -368,7 +372,7 @@ export default function RoomsClient({
         workspaceId={workspace.id}
         room={slugRoomTarget}
         onClose={closeSlugDialog}
-        onSuccess={handleFeedback}
+        onSuccess={onSlugChange}
       />
     </Container>
   );
