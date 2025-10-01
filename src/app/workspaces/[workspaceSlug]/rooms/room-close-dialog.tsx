@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useEffect } from "react";
 import {
+  Alert,
   Button,
   CircularProgress,
   Dialog,
@@ -14,8 +15,8 @@ import {
 import type { SerializedRoom } from "@/lib/services/room";
 
 import { closeRoomAction } from "./actions";
-import { roomActionIdleState } from "./room-action-state";
-import { useNotification } from "@/app/notification-provider";
+import { roomActionIdleState, type RoomActionState } from "./room-action-state";
+import { useForm } from "@/shared/forms";
 
 type RoomCloseDialogProps = {
   open: boolean;
@@ -32,31 +33,35 @@ export default function RoomCloseDialog({
   onClose,
   onSuccess,
 }: RoomCloseDialogProps) {
-  const [state, formAction, isPending] = useActionState(closeRoomAction, roomActionIdleState);
-  const notify = useNotification();
-
-  useEffect(() => {
-    if (state.status === "success") {
-      onSuccess(state.message ?? "Комната закрыта.");
+  const { action, state, isPending, reset } = useForm<Record<string, never>, RoomActionState>(
+    {},
+    closeRoomAction,
+    roomActionIdleState,
+    () => {
+      onSuccess("Комната закрыта.");
       onClose();
-    }
-  }, [onClose, onSuccess, state.message, state.status]);
+    },
+    {},
+  );
 
   useEffect(() => {
-    if (state.status === "error" && state.message) {
-      notify({ severity: "error", message: state.message });
+    if (!open) {
+      reset();
     }
-  }, [notify, state.message, state.status]);
+  }, [open, reset]);
 
   const roomName = room?.name ?? "";
 
   return (
     <Dialog open={open} onClose={isPending ? undefined : onClose} maxWidth="sm" fullWidth>
-      <form action={formAction}>
+      <form action={action}>
         <input type="hidden" name="workspaceId" value={workspaceId} />
         <input type="hidden" name="roomId" value={room?.id ?? ""} />
         <DialogTitle>Закрыть комнату</DialogTitle>
         <DialogContent dividers>
+          {state.status === "error" && state.message ? (
+            <Alert severity="error">{state.message}</Alert>
+          ) : null}
           <Typography gutterBottom>
             После закрытия комнаты участники не смогут продолжить работу, а анонимный доступ будет
             отключён.

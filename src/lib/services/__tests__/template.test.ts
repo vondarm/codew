@@ -108,10 +108,10 @@ describe("TemplateService", () => {
         language: TemplateLanguage.JAVASCRIPT,
         content: "console.log(1);",
       }),
-    ).rejects.toMatchObject<Partial<TemplateError>>({
+    ).rejects.toMatchObject({
       code: "VALIDATION_ERROR",
       field: "name",
-    });
+    } satisfies Partial<TemplateError>);
 
     expect(mockedTemplateRepo.createTemplate).not.toHaveBeenCalled();
   });
@@ -125,10 +125,10 @@ describe("TemplateService", () => {
         language: TemplateLanguage.JAVASCRIPT,
         content: "console.log('test');",
       }),
-    ).rejects.toMatchObject<Partial<TemplateError>>({
+    ).rejects.toMatchObject({
       code: "VALIDATION_ERROR",
       field: "hiddenDescription",
-    });
+    } satisfies Partial<TemplateError>);
 
     expect(mockedTemplateRepo.createTemplate).not.toHaveBeenCalled();
   });
@@ -169,7 +169,7 @@ describe("TemplateService", () => {
         language: TemplateLanguage.REACT,
         content: "export const Component = () => null;",
       }),
-    ).rejects.toMatchObject<Partial<TemplateError>>({ code: "FORBIDDEN" });
+    ).rejects.toMatchObject({ code: "FORBIDDEN" } satisfies Partial<TemplateError>);
 
     expect(mockedTemplateRepo.createTemplate).not.toHaveBeenCalled();
   });

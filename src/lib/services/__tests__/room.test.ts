@@ -168,7 +168,7 @@ describe("RoomService", () => {
       createRoom(viewerMembership.userId, workspace.id, {
         name: "Интервью",
       }),
-    ).rejects.toMatchObject<Partial<RoomError>>({ code: "FORBIDDEN" });
+    ).rejects.toMatchObject({ code: "FORBIDDEN" } satisfies Partial<RoomError>);
 
     expect(mockedRoomRepo.createRoomRecord).not.toHaveBeenCalled();
   });
@@ -181,7 +181,7 @@ describe("RoomService", () => {
       .mockReturnValue(0.654321);
 
     mockedRoomRepo.findRoomBySlug
-      .mockImplementationOnce(async () => ({ ...baseRoom, id: "room-2" }))
+      .mockImplementationOnce(async () => ({ ...baseRoom, id: "room-2", workspace }))
       .mockImplementationOnce(async () => null);
 
     const slug = await generateUniqueSlug("Интервью по JS");
@@ -194,7 +194,7 @@ describe("RoomService", () => {
 
   it("appends suffix when custom slug already exists", async () => {
     mockedRoomRepo.findRoomBySlug
-      .mockImplementationOnce(async () => ({ ...baseRoom, id: "room-2" }))
+      .mockImplementationOnce(async () => ({ ...baseRoom, id: "room-2", workspace }))
       .mockImplementationOnce(async () => null);
 
     const slug = await generateUniqueSlug("Интервью по JS", { slug: "custom" });

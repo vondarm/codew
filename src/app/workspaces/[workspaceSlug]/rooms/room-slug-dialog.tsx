@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useEffect } from "react";
 import {
+  Alert,
   Button,
   CircularProgress,
   Dialog,
@@ -14,8 +15,8 @@ import {
 import type { SerializedRoom } from "@/lib/services/room";
 
 import { regenerateRoomSlugAction } from "./actions";
-import { roomActionIdleState } from "./room-action-state";
-import { useNotification } from "@/app/notification-provider";
+import { roomActionIdleState, type RoomActionState } from "./room-action-state";
+import { useForm } from "@/shared/forms";
 
 type RoomSlugDialogProps = {
   open: boolean;
@@ -25,6 +26,18 @@ type RoomSlugDialogProps = {
   onSuccess: (message: string) => void;
 };
 
+type RoomSlugFormValue = {
+  workspaceId: string;
+  roomId: string;
+  previousSlug: string;
+};
+
+const INITIAL_ROOM_SLUG_FORM: RoomSlugFormValue = {
+  workspaceId: "",
+  roomId: "",
+  previousSlug: "",
+};
+
 export default function RoomSlugDialog({
   open,
   workspaceId,
@@ -32,33 +45,41 @@ export default function RoomSlugDialog({
   onClose,
   onSuccess,
 }: RoomSlugDialogProps) {
-  const [state, formAction, isPending] = useActionState(
+  const currentValue: Partial<RoomSlugFormValue> | null = room
+    ? { workspaceId, roomId: room.id, previousSlug: room.slug }
+    : { workspaceId };
+
+  const { action, state, isPending, reset, formValue } = useForm<
+    RoomSlugFormValue,
+    RoomActionState
+  >(
+    currentValue,
     regenerateRoomSlugAction,
     roomActionIdleState,
-  );
-  const notify = useNotification();
-
-  useEffect(() => {
-    if (state.status === "success") {
-      onSuccess(state.message ?? "Ссылка обновлена.");
+    () => {
+      onSuccess("Ссылка обновлена.");
       onClose();
-    }
-  }, [onClose, onSuccess, state.message, state.status]);
+    },
+    INITIAL_ROOM_SLUG_FORM,
+  );
 
   useEffect(() => {
-    if (state.status === "error" && state.message) {
-      notify({ severity: "error", message: state.message });
+    if (!open) {
+      reset();
     }
-  }, [notify, state.message, state.status]);
+  }, [open, reset]);
 
   return (
     <Dialog open={open} onClose={isPending ? undefined : onClose} maxWidth="sm" fullWidth>
-      <form action={formAction}>
-        <input type="hidden" name="workspaceId" value={workspaceId} />
-        <input type="hidden" name="roomId" value={room?.id ?? ""} />
-        <input type="hidden" name="previousSlug" value={room?.slug ?? ""} />
+      <form action={action}>
+        <input type="hidden" name="workspaceId" value={formValue.workspaceId} />
+        <input type="hidden" name="roomId" value={formValue.roomId} />
+        <input type="hidden" name="previousSlug" value={formValue.previousSlug} />
         <DialogTitle>Обновить ссылку комнаты</DialogTitle>
         <DialogContent dividers>
+          {state.status === "error" && state.message ? (
+            <Alert severity="error">{state.message}</Alert>
+          ) : null}
           <Typography gutterBottom>
             Мы сгенерируем новый slug для комнаты. Старые ссылки перестанут работать.
           </Typography>

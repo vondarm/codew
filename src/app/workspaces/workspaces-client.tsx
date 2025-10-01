@@ -1,10 +1,11 @@
 "use client";
 
 import type { ChangeEvent } from "react";
-import { useActionState, useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import type { MemberRole } from "@prisma/client";
 
 import {
+  Alert,
   Avatar,
   Box,
   Button,
@@ -12,6 +13,7 @@ import {
   CardContent,
   Chip,
   type ChipProps,
+  CircularProgress,
   Container,
   Dialog,
   DialogActions,
@@ -25,7 +27,6 @@ import {
   TableRow,
   TextField,
   Typography,
-  CircularProgress,
 } from "@mui/material";
 
 import type { WorkspaceActionState } from "./actions";
@@ -36,6 +37,7 @@ import { logout } from "@/lib/auth-client";
 import { ROUTES } from "@/routes";
 import Link from "next/link";
 import { useNotification } from "@/app/notification-provider";
+import { useForm } from "@/shared/forms";
 
 type SerializedWorkspace = {
   id: string;
@@ -107,6 +109,13 @@ function autoSlugFromName(name: string): string {
   return withSlugFallback(slugify(name));
 }
 
+type WorkspaceFormValue = Pick<SerializedWorkspace, "name" | "slug">;
+
+const INITIAL_WORKSPACE: WorkspaceFormValue = {
+  name: "",
+  slug: "",
+};
+
 type WorkspaceFormProps = {
   open: boolean;
   onClose: () => void;
@@ -114,79 +123,83 @@ type WorkspaceFormProps = {
 };
 
 function CreateWorkspaceDialog({ open, onClose, onSuccess }: WorkspaceFormProps) {
-  const [state, formAction, isPending] = useActionState(createWorkspaceAction, idleState);
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
   const [slugLocked, setSlugLocked] = useState(false);
+  const { formValue, set, action, state, isPending, reset } = useForm<
+    WorkspaceFormValue,
+    WorkspaceActionState
+  >(
+    null,
+    createWorkspaceAction,
+    idleState,
+    () => {
+      onSuccess("Рабочая область создана.");
+      onClose();
+      setSlugLocked(false);
+    },
+    INITIAL_WORKSPACE,
+  );
 
   useEffect(() => {
     if (!open) {
-      setName("");
-      setSlug("");
+      reset();
       setSlugLocked(false);
     }
-  }, [open]);
+  }, [open, reset]);
 
-  useEffect(() => {
-    if (!open || slugLocked) {
-      return;
+  const handleNameChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    set("name")(value);
+
+    if (!slugLocked) {
+      const next = autoSlugFromName(value);
+
+      if (formValue.slug !== next) {
+        set("slug")(next);
+      }
     }
-
-    const next = autoSlugFromName(name);
-    setSlug((current) => (current === next ? current : next));
-  }, [name, open, slugLocked]);
-
-  useEffect(() => {
-    if (state.status === "success") {
-      onSuccess("Рабочая область создана.");
-      onClose();
-    }
-  }, [onClose, onSuccess, state.status]);
-
-  const notify = useNotification();
-
-  useEffect(() => {
-    if (state.status === "error" && state.message) {
-      notify({ severity: "error", message: state.message });
-    }
-  }, [notify, state.message, state.status]);
+  };
 
   const handleSlugChange = (event: ChangeEvent<HTMLInputElement>) => {
     const rawValue = event.target.value;
 
     if (!rawValue.trim()) {
       setSlugLocked(false);
-      setSlug("");
+      set("slug")("");
       return;
     }
 
     setSlugLocked(true);
-    setSlug(withSlugFallback(slugify(rawValue)));
+    set("slug")(withSlugFallback(slugify(rawValue)));
   };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <form action={formAction}>
+      <form action={action}>
         <DialogTitle>Создать рабочую область</DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           <Stack spacing={2} mt={1}>
+            {state.status === "error" && state.message ? (
+              <Alert severity="error">{state.message}</Alert>
+            ) : null}
             <TextField
               autoFocus
               label="Название"
               name="name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
+              value={formValue.name}
+              onChange={handleNameChange}
               required
               fullWidth
+              disabled={isPending}
               error={Boolean(state.fieldErrors?.name)}
               helperText={state.fieldErrors?.name ?? "Укажите понятное название рабочей области."}
             />
             <TextField
               label="Slug"
               name="slug"
-              value={slug}
+              value={formValue.slug}
               onChange={handleSlugChange}
               fullWidth
+              disabled={isPending}
               error={Boolean(state.fieldErrors?.slug)}
               helperText={
                 state.fieldErrors?.slug ??
@@ -213,71 +226,76 @@ type EditWorkspaceDialogProps = WorkspaceFormProps & {
 };
 
 function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorkspaceDialogProps) {
-  const [state, formAction, isPending] = useActionState(updateWorkspaceAction, idleState);
-  const [name, setName] = useState(workspace?.name ?? "");
-  const [slug, setSlug] = useState(workspace?.slug ?? "");
   const [slugLocked, setSlugLocked] = useState(true);
 
-  useEffect(() => {
-    setName(workspace?.name ?? "");
-    setSlug(workspace?.slug ?? "");
-    setSlugLocked(true);
-  }, [workspace]);
-
-  useEffect(() => {
-    if (state.status === "success") {
+  const { formValue, set, action, state, isPending, reset } = useForm<
+    WorkspaceFormValue,
+    WorkspaceActionState
+  >(
+    workspace,
+    updateWorkspaceAction,
+    idleState,
+    () => {
       onSuccess("Изменения сохранены.");
       onClose();
-    }
-  }, [onClose, onSuccess, state.status]);
-
-  const notify = useNotification();
+    },
+    INITIAL_WORKSPACE,
+  );
 
   useEffect(() => {
-    if (state.status === "error" && state.message) {
-      notify({ severity: "error", message: state.message });
+    reset();
+    setSlugLocked(true);
+  }, [reset, workspace]);
+
+  if (!workspace) {
+    return null;
+  }
+
+  const handleNameChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    set("name")(value);
+
+    if (!slugLocked) {
+      const next = autoSlugFromName(value);
+
+      if (formValue.slug !== next) {
+        set("slug")(next);
+      }
     }
-  }, [notify, state.message, state.status]);
+  };
 
   const handleSlugChange = (event: ChangeEvent<HTMLInputElement>) => {
     const rawValue = event.target.value;
 
     if (!rawValue.trim()) {
       setSlugLocked(false);
-      setSlug("");
+      set("slug")("");
       return;
     }
 
     setSlugLocked(true);
-    setSlug(withSlugFallback(slugify(rawValue)));
+    set("slug")(withSlugFallback(slugify(rawValue)));
   };
-
-  useEffect(() => {
-    if (!slugLocked && workspace) {
-      const next = autoSlugFromName(name);
-      setSlug((current) => (current === next ? current : next));
-    }
-  }, [name, slugLocked, workspace]);
-
-  if (!workspace) {
-    return null;
-  }
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <form action={formAction}>
+      <form action={action}>
         <input type="hidden" name="workspaceId" value={workspace.id} />
         <DialogTitle>Редактировать рабочую область</DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           <Stack spacing={2} mt={1}>
+            {state.status === "error" && state.message ? (
+              <Alert severity="error">{state.message}</Alert>
+            ) : null}
             <TextField
               autoFocus
               label="Название"
               name="name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
+              value={formValue.name}
+              onChange={handleNameChange}
               required
               fullWidth
+              disabled={isPending}
               error={Boolean(state.fieldErrors?.name)}
               helperText={
                 state.fieldErrors?.name ?? "Название отображается в списках и на страницах."
@@ -286,9 +304,10 @@ function EditWorkspaceDialog({ open, onClose, onSuccess, workspace }: EditWorksp
             <TextField
               label="Slug"
               name="slug"
-              value={slug}
+              value={formValue.slug}
               onChange={handleSlugChange}
               fullWidth
+              disabled={isPending}
               error={Boolean(state.fieldErrors?.slug)}
               helperText={
                 state.fieldErrors?.slug ??

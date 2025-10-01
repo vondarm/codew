@@ -1,8 +1,9 @@
 "use client";
 
-import { type ReactNode, useActionState, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo } from "react";
 import type { TemplateLanguage } from "@prisma/client";
 import {
+  Alert,
   Button,
   CircularProgress,
   FormControl,
@@ -17,8 +18,8 @@ import {
 import type { SerializedTemplate } from "@/lib/services/template";
 
 import { createTemplateAction, updateTemplateAction } from "./actions";
-import { templateActionIdleState } from "./template-action-state";
-import { useNotification } from "@/app/notification-provider";
+import { templateActionIdleState, type TemplateActionState } from "./template-action-state";
+import { useForm } from "@/shared/forms";
 
 export type TemplateFormMode = "create" | "edit";
 
@@ -41,6 +42,22 @@ type TemplateFormProps = {
   children: (props: TemplateFormRenderProps) => ReactNode;
 };
 
+type TemplateFormValue = {
+  name: string;
+  description: string | null;
+  hiddenDescription: string | null;
+  language: TemplateLanguage;
+  content: string;
+};
+
+const BASE_TEMPLATE: TemplateFormValue = {
+  name: "",
+  description: "",
+  hiddenDescription: "",
+  language: "JAVASCRIPT",
+  content: "",
+};
+
 export default function TemplateForm({
   mode,
   workspaceId,
@@ -58,51 +75,53 @@ export default function TemplateForm({
     [mode],
   );
 
-  const [state, formAction, isPending] = useActionState(action, templateActionIdleState);
-  const notify = useNotification();
+  const {
+    formValue,
+    set,
+    action: formAction,
+    state,
+    isPending,
+    reset,
+  } = useForm<TemplateFormValue, TemplateActionState>(
+    template ?? null,
+    action,
+    templateActionIdleState,
+    () => {
+      const message = mode === "create" ? "Шаблон создан." : "Шаблон обновлён.";
+      onSuccess(message);
+    },
+    BASE_TEMPLATE,
+  );
+
+  const handleFormAction = useCallback(
+    async (formData: FormData) => {
+      onPendingChange?.(true);
+      try {
+        await formAction(formData);
+      } finally {
+        onPendingChange?.(false);
+      }
+    },
+    [formAction, onPendingChange],
+  );
 
   useEffect(() => {
-    onPendingChange?.(isPending);
-  }, [isPending, onPendingChange]);
-
-  const defaultLanguage = languages[0] ?? ("JAVASCRIPT" as TemplateLanguage);
-
-  const [name, setName] = useState(template?.name ?? "");
-  const [description, setDescription] = useState(template?.description ?? "");
-  const [hiddenDescription, setHiddenDescription] = useState(template?.hiddenDescription ?? "");
-  const [language, setLanguage] = useState<TemplateLanguage>(template?.language ?? defaultLanguage);
-  const [content, setContent] = useState(template?.content ?? "");
-
-  useEffect(() => {
-    setName(template?.name ?? "");
-    setDescription(template?.description ?? "");
-    setHiddenDescription(template?.hiddenDescription ?? "");
-    setLanguage(template?.language ?? defaultLanguage);
-    setContent(template?.content ?? "");
-  }, [defaultLanguage, template]);
-
-  useEffect(() => {
-    if (state.status === "success") {
-      onSuccess(state.message ?? (mode === "create" ? "Шаблон создан." : "Шаблон обновлён."));
-    }
-  }, [mode, onSuccess, state.message, state.status]);
-
-  useEffect(() => {
-    if (state.status === "error" && state.message) {
-      notify({ severity: "error", message: state.message });
-    }
-  }, [notify, state.message, state.status]);
+    reset();
+  }, [reset, template?.id]);
 
   const resolvedSubmitLabel = submitLabel ?? (mode === "create" ? "Создать" : "Сохранить");
   const resolvedCancelLabel = cancelLabel ?? "Отмена";
 
   const fields = (
     <Stack spacing={2} sx={{ mt: 1 }}>
+      {state.status === "error" && state.message ? (
+        <Alert severity="error">{state.message}</Alert>
+      ) : null}
       <TextField
         label="Название"
         name="name"
-        value={name}
-        onChange={(event) => setName(event.target.value)}
+        value={formValue.name}
+        onChange={(event) => set("name")(event.target.value)}
         required
         fullWidth
         disabled={isPending}
@@ -112,8 +131,8 @@ export default function TemplateForm({
       <TextField
         label="Описание"
         name="description"
-        value={description}
-        onChange={(event) => setDescription(event.target.value)}
+        value={formValue.description ?? ""}
+        onChange={(event) => set("description")(event.target.value)}
         disabled={isPending}
         fullWidth
         multiline
@@ -126,8 +145,8 @@ export default function TemplateForm({
       <TextField
         label="Скрытое описание"
         name="hiddenDescription"
-        value={hiddenDescription}
-        onChange={(event) => setHiddenDescription(event.target.value)}
+        value={formValue.hiddenDescription ?? ""}
+        onChange={(event) => set("hiddenDescription")(event.target.value)}
         disabled={isPending}
         fullWidth
         multiline
@@ -144,8 +163,8 @@ export default function TemplateForm({
           labelId="template-language-label"
           label="Язык"
           name="language"
-          value={language}
-          onChange={(event) => setLanguage(event.target.value as TemplateLanguage)}
+          value={formValue.language}
+          onChange={(event) => set("language")(event.target.value as TemplateLanguage)}
         >
           {languages.map((lang) => (
             <MenuItem key={lang} value={lang}>
@@ -160,8 +179,8 @@ export default function TemplateForm({
       <TextField
         label="Содержимое"
         name="content"
-        value={content}
-        onChange={(event) => setContent(event.target.value)}
+        value={formValue.content}
+        onChange={(event) => set("content")(event.target.value)}
         fullWidth
         multiline
         minRows={8}
@@ -194,7 +213,7 @@ export default function TemplateForm({
   );
 
   return (
-    <form action={formAction} style={{ height: "100%" }}>
+    <form action={handleFormAction} style={{ height: "100%" }}>
       <input type="hidden" name="workspaceId" value={workspaceId} />
       {mode === "edit" && template ? (
         <input type="hidden" name="templateId" value={template.id} />
