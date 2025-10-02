@@ -69,12 +69,12 @@ export default function RoomSettingsClient({
 
   const onChangeSlug = (newSlug: string, message: string) => {
     notify({ message });
-    router.replace(ROUTES.room(newSlug));
+    router.replace(ROUTES.room(workspace.slug, newSlug));
   };
 
   const handleCopyLink = async () => {
     try {
-      await copyRoomLink(room.slug);
+      await copyRoomLink(workspace.slug, room.slug);
       notify({ message: "Ссылка скопирована." });
     } catch (error) {
       console.error(error);

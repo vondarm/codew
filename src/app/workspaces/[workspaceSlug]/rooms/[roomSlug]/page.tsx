@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 
 type RoomPageParams = {
   roomSlug: string;
+  workspaceSlug: string;
 };
 
 type PageProps = {
@@ -23,7 +24,7 @@ type PageProps = {
 };
 
 export default async function RoomPage({ params }: PageProps) {
-  const { roomSlug } = await params;
+  const { roomSlug, workspaceSlug } = await params;
 
   const user = await getCurrentUser();
 
@@ -35,7 +36,7 @@ export default async function RoomPage({ params }: PageProps) {
     if (error instanceof RoomError) {
       if (error.code === "FORBIDDEN") {
         if (!user) {
-          redirect(ROUTES.signin({ callbackUrl: ROUTES.room(roomSlug) }));
+          redirect(ROUTES.signin({ callbackUrl: ROUTES.room(workspaceSlug, roomSlug) }));
         }
 
         notFound();
