@@ -29,10 +29,7 @@ import RoomFormDialog from "./room-form-dialog";
 import RoomCloseDialog from "./room-close-dialog";
 import RoomOpenButton from "./room-open-button";
 import { useNotification } from "@/app/notification-provider";
-import {
-  createRoomAction,
-  updateRoomAction,
-} from "@/app/(authenticated)/workspaces/[workspaceSlug]/rooms/actions";
+import { createRoomAction, updateRoomAction } from "@/app/workspaces/[workspaceSlug]/rooms/actions";
 
 type WorkspaceSummary = {
   id: string;
@@ -82,7 +79,7 @@ export default function RoomsClient({
 
   const handleCopyLink = async (room: SerializedRoom) => {
     try {
-      await copyRoomLink(room.slug);
+      await copyRoomLink(workspace.slug, room.slug);
       notify({ message: "Ссылка скопирована." });
     } catch (error) {
       console.error(error);
@@ -252,7 +249,7 @@ export default function RoomsClient({
                               size="small"
                               variant="outlined"
                               component={Link}
-                              href={ROUTES.room(room.slug)}
+                              href={ROUTES.room(workspace.slug, room.slug)}
                             >
                               Открыть
                             </Button>

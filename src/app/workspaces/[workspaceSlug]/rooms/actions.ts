@@ -88,7 +88,7 @@ export async function createRoomAction(
     });
 
     revalidatePath(ROUTES.workspaceRooms(workspaceSlug));
-    revalidatePath(ROUTES.room(room.slug));
+    revalidatePath(ROUTES.room(workspaceSlug, room.slug));
 
     return {
       status: "success",
@@ -146,7 +146,7 @@ export async function updateRoomAction(
     });
 
     revalidatePath(ROUTES.workspaceRooms(workspaceSlug));
-    revalidatePath(ROUTES.room(room.slug));
+    revalidatePath(ROUTES.room(workspaceSlug, room.slug));
 
     return {
       status: "success",
@@ -175,7 +175,7 @@ export async function closeRoomAction(
     const room = await closeRoom(user.id, roomId);
 
     revalidatePath(ROUTES.workspaceRooms(workspaceSlug));
-    revalidatePath(ROUTES.room(room.slug));
+    revalidatePath(ROUTES.room(workspaceSlug, room.slug));
 
     return {
       status: "success",
@@ -204,7 +204,7 @@ export async function openRoomAction(
     const room = await openRoom(user.id, roomId);
 
     revalidatePath(ROUTES.workspaceRooms(workspaceSlug));
-    revalidatePath(ROUTES.room(room.slug));
+    revalidatePath(ROUTES.room(workspaceSlug, room.slug));
 
     return {
       status: "success",
@@ -237,10 +237,10 @@ export async function regenerateRoomSlugAction(
     const room = await regenerateRoomSlug(user.id, roomId);
 
     revalidatePath(ROUTES.workspaceRooms(workspaceSlug));
-    revalidatePath(ROUTES.room(room.slug));
+    revalidatePath(ROUTES.room(workspaceSlug, room.slug));
 
     if (previousSlug && previousSlug !== room.slug) {
-      revalidatePath(ROUTES.room(previousSlug));
+      revalidatePath(ROUTES.room(workspaceSlug, previousSlug));
     }
 
     return {

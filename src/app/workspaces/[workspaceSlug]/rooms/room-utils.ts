@@ -30,8 +30,8 @@ export function formatRoomDate(value: string | null): string {
   }
 }
 
-export async function copyRoomLink(slug: string): Promise<void> {
+export async function copyRoomLink(workspaceSlug: string, roomSlug: string): Promise<void> {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const url = `${origin}${ROUTES.room(slug)}`;
+  const url = `${origin}${ROUTES.room(workspaceSlug, roomSlug)}`;
   await navigator.clipboard.writeText(url);
 }

@@ -20,7 +20,12 @@ import {
 import { logout } from "@/lib/auth-client";
 import { ROUTES } from "@/routes";
 
-import type { HeaderUser } from "./app-header";
+export type HeaderUser = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+};
 
 type HeaderUserMenuProps = {
   user: HeaderUser;

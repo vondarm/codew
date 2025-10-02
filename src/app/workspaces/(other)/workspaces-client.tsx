@@ -1,18 +1,16 @@
 "use client";
 
 import { ChangeEvent, startTransition, useActionState } from "react";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import type { MemberRole } from "@prisma/client";
 
 import {
   Alert,
-  Avatar,
   Box,
   Button,
   Card,
   CardContent,
   Chip,
-  type ChipProps,
   CircularProgress,
   Container,
   Dialog,
@@ -32,14 +30,14 @@ import {
 import type { WorkspaceActionState } from "./actions";
 import { createWorkspaceAction, deleteWorkspaceAction, updateWorkspaceAction } from "./actions";
 import { slugify, withSlugFallback } from "@/lib/utils/slugify";
-import { logout } from "@/lib/auth-client";
 
 import { ROUTES } from "@/routes";
 import Link from "next/link";
 import { useNotification } from "@/app/notification-provider";
 import { useForm, withHandlers } from "@/shared/forms";
+import { RoleChip } from "@/app/workspaces/_components/RoleChip";
 
-type SerializedWorkspace = {
+export type SerializedWorkspace = {
   id: string;
   name: string;
   slug: string;
@@ -62,32 +60,6 @@ type WorkspacesClientProps = {
 };
 
 const idleState: WorkspaceActionState = { status: "idle" };
-
-const ROLE_LABELS: Record<MemberRole, string> = {
-  ADMIN: "Администратор",
-  EDITOR: "Редактор",
-  VIEWER: "Наблюдатель",
-};
-
-type RoleChipColor = Exclude<ChipProps["color"], undefined>;
-
-function getRoleVisuals(workspace: SerializedWorkspace): {
-  label: string;
-  color: RoleChipColor;
-} {
-  const baseLabel = ROLE_LABELS[workspace.role];
-  const label = workspace.isOwner ? `${baseLabel} • владелец` : baseLabel;
-
-  let color: RoleChipColor = "default";
-
-  if (workspace.role === "ADMIN") {
-    color = "primary";
-  } else if (workspace.role === "EDITOR") {
-    color = "info";
-  }
-
-  return { label, color };
-}
 
 function formatDate(isoDate: string): string {
   try {
@@ -366,27 +338,16 @@ function DeleteWorkspaceDialog({
   );
 }
 
-export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientProps) {
+export function WorkspacesClient({ workspaces }: WorkspacesClientProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editWorkspace, setEditWorkspace] = useState<SerializedWorkspace | null>(null);
   const [deleteWorkspace, setDeleteWorkspace] = useState<SerializedWorkspace | null>(null);
   const notify = useNotification();
-  const [isLogoutPending, startLogout] = useTransition();
 
   const sortedWorkspaces = useMemo(
     () => workspaces.toSorted((a, b) => a.name.localeCompare(b.name, "ru")),
     [workspaces],
   );
-
-  const displayName = currentUser.name ?? currentUser.email ?? "Пользователь";
-  const avatarAlt = displayName;
-  const avatarFallback = displayName.charAt(0).toUpperCase();
-
-  const handleLogout = () => {
-    startLogout(async () => {
-      await logout({ callbackUrl: ROUTES.home });
-    });
-  };
 
   const closeCreate = () => {
     setCreateOpen(false);
@@ -403,34 +364,6 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
   return (
     <Container component="main" maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
       <Stack spacing={4}>
-        <Card variant="outlined">
-          <CardContent>
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={3}
-              justifyContent="space-between"
-              alignItems={{ xs: "flex-start", sm: "center" }}
-            >
-              <Stack direction="row" spacing={2} alignItems="center">
-                <Avatar src={currentUser.image ?? undefined} alt={avatarAlt}>
-                  {avatarFallback}
-                </Avatar>
-                <Box>
-                  <Typography fontWeight={600}>{displayName}</Typography>
-                  {currentUser.email ? (
-                    <Typography color="text.secondary" variant="body2">
-                      {currentUser.email}
-                    </Typography>
-                  ) : null}
-                </Box>
-              </Stack>
-              <Button variant="outlined" onClick={handleLogout} disabled={isLogoutPending}>
-                {isLogoutPending ? <CircularProgress size={20} /> : "Выйти"}
-              </Button>
-            </Stack>
-          </CardContent>
-        </Card>
-
         <Stack
           direction={{ xs: "column", sm: "row" }}
           justifyContent="space-between"
@@ -476,9 +409,6 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
                 </TableHead>
                 <TableBody>
                   {sortedWorkspaces.map((workspace) => {
-                    const { label, color } = getRoleVisuals(workspace);
-                    const variant = color === "default" ? "outlined" : "filled";
-
                     return (
                       <TableRow key={workspace.id} hover>
                         <TableCell>
@@ -488,7 +418,7 @@ export function WorkspacesClient({ workspaces, currentUser }: WorkspacesClientPr
                           <Chip label={workspace.slug} size="small" variant="outlined" />
                         </TableCell>
                         <TableCell>
-                          <Chip label={label} size="small" color={color} variant={variant} />
+                          <RoleChip workspace={workspace} />
                         </TableCell>
                         <TableCell>{formatDate(workspace.createdAt)}</TableCell>
                         <TableCell align="right">

@@ -15,8 +15,8 @@ export const ROUTES = {
   workspaceTemplates(workspaceSlug: string) {
     return `/workspaces/${workspaceSlug}/templates`;
   },
-  room(slug: string) {
-    return `/rooms/${slug}`;
+  room(workspaceSlug: string, roomSlug: string) {
+    return `/workspaces/${workspaceSlug}/rooms/${roomSlug}`;
   },
   signin({ callbackUrl }: SignInRouteParams) {
     return `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
