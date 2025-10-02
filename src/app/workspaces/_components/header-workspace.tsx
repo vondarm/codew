@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Avatar, Button, Stack, Typography } from "@mui/material";
 import { ROUTES } from "@/routes";
 import { RoleChip } from "@/app/workspaces/_components/RoleChip";
@@ -24,6 +25,7 @@ export function HeaderWorkspace({ workspace }: HeaderWorkspaceMenuProps) {
       <Button
         color="inherit"
         variant="text"
+        component={Link}
         href={ROUTES.workspace(workspace.slug)}
         startIcon={
           <Avatar src={undefined} alt={avatarAlt} sx={{ width: 32, height: 32 }}>

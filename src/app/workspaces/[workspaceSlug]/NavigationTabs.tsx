@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Tabs, Tab, Divider } from "@mui/material";
 import { FC } from "react";
@@ -26,7 +27,7 @@ export const NavigationTabs: FC<Props> = ({ workspaceSlug }) => {
     <>
       <Tabs value={index}>
         {NAV.map((nav) => (
-          <Tab key={nav.href} href={nav.href} label={nav.name} />
+          <Tab key={nav.href} component={Link} href={nav.href} label={nav.name} />
         ))}
       </Tabs>
       <Divider />

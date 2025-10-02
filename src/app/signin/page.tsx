@@ -1,9 +1,6 @@
 import Link from "next/link";
-
 import { Container, Link as MuiLink, Paper, Stack, Typography } from "@mui/material";
-
 import { ROUTES } from "@/routes";
-
 import { SignInForm } from "./signin-form";
 
 type SignInPageProps = {
