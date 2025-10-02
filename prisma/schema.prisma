@@ -20,6 +20,7 @@ model User {
   invitedMembers Member[] @relation("MemberInvitedBy")
   templates     Template[]
   createdRooms  Room[]
+  roomParticipants RoomParticipant[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -93,6 +94,23 @@ enum RoomStatus {
   ARCHIVED
 }
 
+enum AnonymousApprovalMode {
+  AUTO
+  MANUAL
+}
+
+enum RoomParticipantRole {
+  HOST
+  COLLABORATOR
+  VIEWER
+  GUEST
+}
+
+enum RoomParticipantSource {
+  WORKSPACE_MEMBER
+  ANONYMOUS
+}
+
 model Member {
   id           String     @id @default(cuid())
   workspaceId  String
@@ -146,6 +164,9 @@ model Room {
   allowAnonymousView  Boolean     @default(false)
   allowAnonymousEdit  Boolean     @default(false)
   allowAnonymousJoin  Boolean     @default(false)
+  requiresMemberAccount Boolean   @default(false)
+  anonymousApprovalMode AnonymousApprovalMode @default(AUTO)
+  maxParticipants      Int?
   code                String      @default("")
   archivedAt          DateTime?
   closedAt            DateTime?
@@ -154,7 +175,61 @@ model Room {
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  participants RoomParticipant[]
+  anonymousProfiles RoomAnonymousProfile[]
+  sessions RoomSession[]
 
   @@index([workspaceId])
   @@unique([workspaceId, name])
+}
+
+model RoomParticipant {
+  id                 String                  @id @default(cuid())
+  roomId             String
+  userId             String?
+  anonymousProfileId String?
+  role               RoomParticipantRole
+  source             RoomParticipantSource
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  room             Room                  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user             User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anonymousProfile RoomAnonymousProfile? @relation(fields: [anonymousProfileId], references: [id], onDelete: Cascade)
+  sessions         RoomSession[]
+
+  @@index([roomId])
+  @@unique([roomId, userId])
+  @@unique([roomId, anonymousProfileId])
+}
+
+model RoomAnonymousProfile {
+  id         String   @id @default(cuid())
+  roomId     String
+  displayName String
+  slugToken  String   @unique
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  room         Room             @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  participants RoomParticipant[]
+
+  @@index([roomId])
+}
+
+model RoomSession {
+  id            String   @id @default(cuid())
+  roomId        String
+  participantId String
+  connectionId  String   @unique
+  clientInfo    Json?
+  connectedAt   DateTime @default(now())
+  disconnectedAt DateTime?
+  lastPingAt    DateTime @default(now())
+
+  room        Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  participant RoomParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([participantId])
 }

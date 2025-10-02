@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 
 import type { SerializedRoom } from "@/lib/services/room";
+import type { SerializedRoomParticipant } from "@/lib/services/roomMember";
 import { ROUTES } from "@/routes";
 import { useNotification } from "@/app/notification-provider";
 
@@ -31,6 +32,8 @@ import {
   ROOM_STATUS_LABELS,
 } from "@/app/workspaces/[workspaceSlug]/rooms/room-utils";
 import { useRouter } from "next/navigation";
+import { RoomPresenceProvider } from "./room-presence-context";
+import RoomPresencePanel from "./room-presence-panel";
 
 export type WorkspaceSummary = {
   id: string;
@@ -43,6 +46,8 @@ type RoomSettingsClientProps = {
   workspace: WorkspaceSummary;
   canManage: boolean;
   viewerRole: MemberRole | null;
+  viewerUserId?: string | null;
+  initialParticipants: SerializedRoomParticipant[];
 };
 
 export default function RoomSettingsClient({
@@ -50,6 +55,8 @@ export default function RoomSettingsClient({
   workspace,
   canManage,
   viewerRole,
+  viewerUserId,
+  initialParticipants,
 }: RoomSettingsClientProps) {
   const router = useRouter();
   const notify = useNotification();
@@ -239,6 +246,18 @@ export default function RoomSettingsClient({
             </Stack>
           </CardContent>
         </Card>
+
+        <RoomPresenceProvider
+          roomId={room.id}
+          initialParticipants={initialParticipants}
+          viewerMode="MEMBER"
+        >
+          <RoomPresencePanel
+            viewerUserId={viewerUserId ?? null}
+            allowAnonymousJoin={room.allowAnonymousJoin}
+            requiresMemberAccount={room.requiresMemberAccount}
+          />
+        </RoomPresenceProvider>
 
         <Card variant="outlined">
           <CardHeader title="Заметки и код" subheader="Текст отображается участникам комнаты." />

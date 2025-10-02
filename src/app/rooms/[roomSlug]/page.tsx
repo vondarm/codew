@@ -4,10 +4,15 @@ import { MemberRole } from "@prisma/client";
 
 import { getCurrentUser } from "@/lib/auth";
 import { getRoom, RoomError } from "@/lib/services/room";
+import {
+  listRoomParticipants,
+  serializeRoomParticipantsForClient,
+} from "@/lib/services/roomMember";
 import { ROUTES } from "@/routes";
 
 import RoomSettingsClient from "./room-settings-client";
 import type { WorkspaceSummary } from "./room-settings-client";
+import AnonymousRoomClient from "./anonymous-room-client";
 
 export const metadata: Metadata = {
   title: "Комната интервью — CodeW",
@@ -49,9 +54,16 @@ export default async function RoomPage({ params }: PageProps) {
     throw error;
   }
 
+  const participantRecords = await listRoomParticipants(details.room.id);
+  const initialParticipants = serializeRoomParticipantsForClient(participantRecords);
+
   if (details.access === "ANONYMOUS") {
     return (
-      <AnonymousRoomView roomName={details.room.name} workspaceName={details.workspace.name} />
+      <AnonymousRoomClient
+        room={details.room}
+        workspaceName={details.workspace.name}
+        initialParticipants={initialParticipants}
+      />
     );
   }
 
@@ -69,35 +81,8 @@ export default async function RoomPage({ params }: PageProps) {
       workspace={workspaceSummary}
       canManage={canManage}
       viewerRole={details.role}
+      viewerUserId={user?.id ?? null}
+      initialParticipants={initialParticipants}
     />
-  );
-}
-
-type AnonymousRoomViewProps = {
-  roomName: string;
-  workspaceName: string;
-};
-
-function AnonymousRoomView({ roomName, workspaceName }: AnonymousRoomViewProps) {
-  return (
-    <div className="anonymous-room-view">
-      <div
-        style={{
-          minHeight: "60vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "2rem",
-          textAlign: "center",
-        }}
-      >
-        <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>Комната «{roomName}»</h1>
-        <p style={{ maxWidth: "480px", color: "#555", marginBottom: "1.5rem" }}>
-          Интервьюеры из рабочей области «{workspaceName}» скоро присоединятся. Пожалуйста,
-          оставайтесь на этой странице и ожидайте приглашения в сессию.
-        </p>
-      </div>
-    </div>
   );
 }

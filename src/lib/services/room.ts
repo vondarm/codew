@@ -1,4 +1,11 @@
-import { MemberRole, Prisma, RoomStatus, type Room, type Workspace } from "@prisma/client";
+import {
+  AnonymousApprovalMode,
+  MemberRole,
+  Prisma,
+  RoomStatus,
+  type Room,
+  type Workspace,
+} from "@prisma/client";
 
 import {
   closeRoomRecord,
@@ -219,6 +226,9 @@ export type SerializedRoom = {
   allowAnonymousView: boolean;
   allowAnonymousEdit: boolean;
   allowAnonymousJoin: boolean;
+  requiresMemberAccount: boolean;
+  anonymousApprovalMode: AnonymousApprovalMode;
+  maxParticipants: number | null;
   code: string;
   archivedAt: string | null;
   closedAt: string | null;
@@ -244,6 +254,9 @@ export function serializeRoomForClient(room: Room): SerializedRoom {
     allowAnonymousView: room.allowAnonymousView,
     allowAnonymousEdit: room.allowAnonymousEdit,
     allowAnonymousJoin: room.allowAnonymousJoin,
+    requiresMemberAccount: room.requiresMemberAccount,
+    anonymousApprovalMode: room.anonymousApprovalMode,
+    maxParticipants: room.maxParticipants ?? null,
     code: room.code,
     archivedAt: room.archivedAt ? room.archivedAt.toISOString() : null,
     closedAt: room.closedAt ? room.closedAt.toISOString() : null,
