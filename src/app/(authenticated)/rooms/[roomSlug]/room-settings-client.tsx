@@ -20,18 +20,18 @@ import type { SerializedRoom } from "@/lib/services/room";
 import { ROUTES } from "@/routes";
 import { useNotification } from "@/app/notification-provider";
 
-import RoomFormDialog from "@/app/workspaces/[workspaceSlug]/rooms/room-form-dialog";
-import RoomCloseDialog from "@/app/workspaces/[workspaceSlug]/rooms/room-close-dialog";
-import RoomSlugDialog from "@/app/workspaces/[workspaceSlug]/rooms/room-slug-dialog";
-import { updateRoomAction } from "@/app/workspaces/[workspaceSlug]/rooms/actions";
+import RoomFormDialog from "@/app/(authenticated)/workspaces/[workspaceSlug]/rooms/room-form-dialog";
+import RoomCloseDialog from "@/app/(authenticated)/workspaces/[workspaceSlug]/rooms/room-close-dialog";
+import RoomSlugDialog from "@/app/(authenticated)/workspaces/[workspaceSlug]/rooms/room-slug-dialog";
+import { updateRoomAction } from "@/app/(authenticated)/workspaces/[workspaceSlug]/rooms/actions";
 import {
   copyRoomLink,
   formatRoomDate,
   ROOM_STATUS_COLORS,
   ROOM_STATUS_LABELS,
-} from "@/app/workspaces/[workspaceSlug]/rooms/room-utils";
+} from "@/app/(authenticated)/workspaces/[workspaceSlug]/rooms/room-utils";
 import { useRouter } from "next/navigation";
-import RoomOpenButton from "@/app/workspaces/[workspaceSlug]/rooms/room-open-button";
+import RoomOpenButton from "@/app/(authenticated)/workspaces/[workspaceSlug]/rooms/room-open-button";
 
 export type WorkspaceSummary = {
   id: string;

@@ -7,7 +7,7 @@ import { changeRole, inviteMember, MemberServiceError, removeMember } from "@/li
 import { findWorkspaceById } from "@/lib/prisma/workspace";
 import { ROUTES } from "@/routes";
 import { MemberRole } from "@prisma/client";
-import { MembersActionState } from "@/app/workspaces/[workspaceSlug]/members-action-state";
+import { MembersActionState } from "@/app/(authenticated)/workspaces/[workspaceSlug]/members-action-state";
 
 async function revalidateWorkspaceMembers(workspaceId: string) {
   const workspace = await findWorkspaceById(workspaceId);

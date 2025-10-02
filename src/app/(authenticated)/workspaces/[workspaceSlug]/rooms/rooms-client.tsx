@@ -29,7 +29,10 @@ import RoomFormDialog from "./room-form-dialog";
 import RoomCloseDialog from "./room-close-dialog";
 import RoomOpenButton from "./room-open-button";
 import { useNotification } from "@/app/notification-provider";
-import { createRoomAction, updateRoomAction } from "@/app/workspaces/[workspaceSlug]/rooms/actions";
+import {
+  createRoomAction,
+  updateRoomAction,
+} from "@/app/(authenticated)/workspaces/[workspaceSlug]/rooms/actions";
 
 type WorkspaceSummary = {
   id: string;
