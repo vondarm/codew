@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  AnonymousApprovalMode,
   MemberRole,
   Prisma,
   RoomStatus,
@@ -101,6 +102,9 @@ const baseRoom: Room = {
   allowAnonymousView: false,
   allowAnonymousEdit: false,
   allowAnonymousJoin: false,
+  requiresMemberAccount: false,
+  anonymousApprovalMode: AnonymousApprovalMode.AUTO,
+  maxParticipants: null,
   code: "",
   archivedAt: null,
   closedAt: null,
