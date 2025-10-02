@@ -416,3 +416,98 @@ export async function listRoomParticipants(
 ): Promise<RoomParticipantWithActiveSessions[]> {
   return listRoomParticipantsWithSessions(roomId);
 }
+
+export type SerializedRoomParticipant = {
+  id: string;
+  roomId: string;
+  role: RoomParticipantRole;
+  source: RoomParticipantSource;
+  displayName: string;
+  isAnonymous: boolean;
+  isOnline: boolean;
+  connectedClients: number;
+  lastSeenAt: string | null;
+  joinedAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  };
+  anonymousProfile?: {
+    id: string;
+    displayName: string;
+  };
+};
+
+function resolveParticipantDisplayName(participant: RoomParticipantWithRelations): string {
+  if (participant.user) {
+    return participant.user.name ?? participant.user.email ?? "Участник";
+  }
+
+  if (participant.anonymousProfile) {
+    return participant.anonymousProfile.displayName;
+  }
+
+  return "Неизвестный участник";
+}
+
+function resolveParticipantLastSeen(
+  participant: RoomParticipantWithRelations,
+  sessions: readonly RoomSession[],
+): Date | null {
+  if (sessions.length > 0) {
+    const [primary] = sessions;
+    return primary.lastPingAt ?? primary.connectedAt;
+  }
+
+  return participant.updatedAt;
+}
+
+export function serializeParticipantWithSessions(
+  participant: RoomParticipantWithRelations,
+  sessions: readonly RoomSession[],
+): SerializedRoomParticipant {
+  const activeSessions = sessions.filter((session) => !session.disconnectedAt);
+  const isOnline = activeSessions.length > 0;
+  const lastSeenDate = resolveParticipantLastSeen(participant, activeSessions);
+
+  return {
+    id: participant.id,
+    roomId: participant.roomId,
+    role: participant.role,
+    source: participant.source,
+    displayName: resolveParticipantDisplayName(participant),
+    isAnonymous: participant.source === RoomParticipantSource.ANONYMOUS,
+    isOnline,
+    connectedClients: activeSessions.length,
+    lastSeenAt: lastSeenDate ? lastSeenDate.toISOString() : null,
+    joinedAt: participant.createdAt.toISOString(),
+    updatedAt: participant.updatedAt.toISOString(),
+    user: participant.user
+      ? {
+          id: participant.user.id,
+          name: participant.user.name,
+          email: participant.user.email,
+        }
+      : undefined,
+    anonymousProfile: participant.anonymousProfile
+      ? {
+          id: participant.anonymousProfile.id,
+          displayName: participant.anonymousProfile.displayName,
+        }
+      : undefined,
+  };
+}
+
+export function serializeRoomParticipantsForClient(
+  participants: RoomParticipantWithActiveSessions[],
+): SerializedRoomParticipant[] {
+  return participants.map((participant) =>
+    serializeParticipantWithSessions(participant, participant.sessions),
+  );
+}
+
+export function serializeParticipantFromJoin(result: JoinRoomResult): SerializedRoomParticipant {
+  return serializeParticipantWithSessions(result.participant, [result.session]);
+}
